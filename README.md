@@ -85,11 +85,21 @@ SPACETIMEDB_INTEGRATION=1 nix develop .#live --command cabal test --test-show-de
 
 `scripts/live-harness.sh` boots a throwaway in-memory server, builds and
 publishes the Rust fixture module (`fixture/`), and prints `READY <port> <db>
-<root>`. `scripts/live-harness.sh regenerate <out>` captures the live schema and
-regenerates the golden bindings.
+<root>`. `scripts/live-harness.sh {capture,regenerate} <out>` captures the live
+schema JSON / regenerates the golden bindings.
+
+The `.#live` shell ships `rustup` but no default toolchain. Provision it once
+(state persists in `/tmp/hs-st-rust`, overridable via `HS_ST_RUSTUP_HOME` /
+`HS_ST_CARGO_HOME`):
+
+```sh
+nix develop .#live --command bash -c \
+  'export RUSTUP_HOME=/tmp/hs-st-rust/rustup CARGO_HOME=/tmp/hs-st-rust/cargo; \
+   rustup default stable && rustup target add wasm32-unknown-unknown'
+```
 
 Test fixtures are **captured** `spacetime describe --json` output, never
-hand-written.
+hand-written; the committed golden module is `test/golden/Generated.hs`.
 
 ## CI
 
