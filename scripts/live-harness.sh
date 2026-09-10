@@ -56,17 +56,18 @@ boot() {
   # once with:  rustup default stable && rustup target add wasm32-unknown-unknown
   export RUSTUP_HOME="${HS_ST_RUSTUP_HOME:-/tmp/hs-st-rust/rustup}"
   export CARGO_HOME="${HS_ST_CARGO_HOME:-/tmp/hs-st-rust/cargo}"
-  local port
-  port="$(pick_port)"
+  # PORT is a global set here (not echoed): boot() must run in the parent shell,
+  # not a $(...) subshell, so ROOT/SRVPID/PORT survive for serve/teardown.
+  PORT="$(pick_port)"
   # Build first so a compile error fails loudly before the server starts.
   spacetime build -p "$FIXTURE" >&2
   spacetime start \
-    --listen-addr "127.0.0.1:$port" \
+    --listen-addr "127.0.0.1:$PORT" \
     --data-dir "$ROOT/data" \
     --in-memory \
     --non-interactive >"$ROOT/server.log" 2>&1 &
   SRVPID=$!
-  if ! wait_ready "$port"; then
+  if ! wait_ready "$PORT"; then
     echo "server did not become ready; log:" >&2
     cat "$ROOT/server.log" >&2
     return 1
@@ -74,14 +75,13 @@ boot() {
   # Publish (retry briefly while the server finishes coming up).
   local ok=
   for _ in $(seq 1 20); do
-    if spacetime publish "$DB" -p "$FIXTURE" -s "http://127.0.0.1:$port" --anonymous -y >&2; then
+    if spacetime publish "$DB" -p "$FIXTURE" -s "http://127.0.0.1:$PORT" --anonymous -y >&2; then
       ok=1
       break
     fi
     sleep 0.5
   done
   [ -n "$ok" ] || { echo "publish failed" >&2; return 1; }
-  echo "$port"
 }
 
 teardown() {
@@ -96,12 +96,15 @@ describe_json() {
 }
 
 mode="${1:-}"
+ROOT=""
+SRVPID=""
+PORT=""
 case "$mode" in
   serve)
     trap teardown EXIT
     trap 'exit' INT TERM HUP PIPE
-    port="$(boot)"
-    echo "READY $port $DB $ROOT"
+    boot
+    echo "READY $PORT $DB $ROOT"
     read -r _ || true
     ;;
   describe)
@@ -111,16 +114,16 @@ case "$mode" in
     out="${2:?usage: live-harness.sh capture <out.json>}"
     trap teardown EXIT
     trap 'exit' INT TERM HUP PIPE
-    port="$(boot)"
-    describe_json "$port" "$DB" >"$out"
+    boot
+    describe_json "$PORT" "$DB" >"$out"
     echo "wrote $out" >&2
     ;;
   regenerate)
     out="${2:?usage: live-harness.sh regenerate <out.hs>}"
     trap teardown EXIT
     trap 'exit' INT TERM HUP PIPE
-    port="$(boot)"
-    describe_json "$port" "$DB" | cabal run -v0 hs-spacetime-codegen -- "$out"
+    boot
+    describe_json "$PORT" "$DB" | cabal run -v0 hs-spacetime-codegen -- "$out"
     echo "wrote $out" >&2
     ;;
   *)

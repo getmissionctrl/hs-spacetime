@@ -13,11 +13,22 @@ import qualified SpacetimeDB.Codegen.GoldenSpec
 import qualified SpacetimeDB.Codegen.SchemaSpec
 import qualified SpacetimeDB.Protocol.FrameSpec
 import qualified SpacetimeDB.Protocol.MessagesSpec
+import qualified SpacetimeDB.IntegrationCheck
 import qualified SpacetimeDB.Protocol.RowListSpec
-import Test.Hspec (describe, hspec)
+import System.Environment (lookupEnv)
+import Test.Hspec (Spec, describe, hspec)
 
 main :: IO ()
-main = hspec $ do
+main = do
+  integration <- lookupEnv "SPACETIMEDB_INTEGRATION"
+  hspec $ do
+    hermetic
+    case integration of
+      Just "1" -> SpacetimeDB.IntegrationCheck.spec
+      _ -> pure ()
+
+hermetic :: Spec
+hermetic = do
   describe "SpacetimeDB.BSATN.Decoder" SpacetimeDB.BSATN.DecoderSpec.spec
   describe "SpacetimeDB.BSATN.Encoder" SpacetimeDB.BSATN.EncoderSpec.spec
   describe "SpacetimeDB.BSATN.Roundtrip" SpacetimeDB.BSATN.RoundtripSpec.spec
