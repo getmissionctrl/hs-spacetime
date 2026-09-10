@@ -16,6 +16,9 @@ library
                     SpacetimeDB.BSATN.Decoder
                     SpacetimeDB.BSATN.Encoder
                     SpacetimeDB.BSATN.Types
+                    SpacetimeDB.Protocol.RowList
+                    SpacetimeDB.Protocol.Messages
+                    SpacetimeDB.Protocol.Frame
   build-depends:    base >=4.14 && <5
                   , bytestring
                   , text
@@ -43,5 +46,8 @@ test-suite hs-spacetime-test
                     SpacetimeDB.BSATN.EncoderSpec
                     SpacetimeDB.BSATN.RoundtripSpec
                     SpacetimeDB.BSATN.TypesSpec
+                    SpacetimeDB.Protocol.RowListSpec
+                    SpacetimeDB.Protocol.MessagesSpec
+                    SpacetimeDB.Protocol.FrameSpec
   build-depends:    base, hs-spacetime, hspec, QuickCheck
-                  , bytestring, text, containers, wide-word
+                  , bytestring, text, containers, wide-word, zlib
