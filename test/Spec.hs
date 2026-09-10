@@ -8,6 +8,9 @@ import qualified SpacetimeDB.Client.ConnectionSpec
 import qualified SpacetimeDB.Client.DispatchSpec
 import qualified SpacetimeDB.Client.EndpointSpec
 import qualified SpacetimeDB.Client.StateSpec
+import qualified SpacetimeDB.Codegen.GeneratedRoundtripSpec
+import qualified SpacetimeDB.Codegen.GoldenSpec
+import qualified SpacetimeDB.Codegen.SchemaSpec
 import qualified SpacetimeDB.Protocol.FrameSpec
 import qualified SpacetimeDB.Protocol.MessagesSpec
 import qualified SpacetimeDB.Protocol.RowListSpec
@@ -26,3 +29,6 @@ main = hspec $ do
   describe "SpacetimeDB.Client.State" SpacetimeDB.Client.StateSpec.spec
   describe "SpacetimeDB.Client.Dispatch" SpacetimeDB.Client.DispatchSpec.spec
   describe "SpacetimeDB.Client.Connection" SpacetimeDB.Client.ConnectionSpec.spec
+  describe "SpacetimeDB.Codegen.Schema" SpacetimeDB.Codegen.SchemaSpec.spec
+  describe "SpacetimeDB.Codegen.Golden" SpacetimeDB.Codegen.GoldenSpec.spec
+  describe "SpacetimeDB.Codegen.GeneratedRoundtrip" SpacetimeDB.Codegen.GeneratedRoundtripSpec.spec

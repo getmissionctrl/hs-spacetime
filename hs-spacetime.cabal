@@ -25,6 +25,8 @@ library
                     SpacetimeDB.Client.Dispatch
                     SpacetimeDB.Client.Connection
                     SpacetimeDB.Client
+                    SpacetimeDB.Codegen.Schema
+                    SpacetimeDB.Codegen
   build-depends:    base >=4.14 && <5
                   , bytestring
                   , text
@@ -43,13 +45,24 @@ library
                   , unordered-containers
                   , case-insensitive
 
+executable hs-spacetime-codegen
+  import:           warnings
+  hs-source-dirs:   app
+  main-is:          Codegen.hs
+  default-language: Haskell2010
+  build-depends:    base, hs-spacetime, bytestring, text
+
 test-suite hs-spacetime-test
   import:           warnings
   type:             exitcode-stdio-1.0
-  hs-source-dirs:   test
+  hs-source-dirs:   test test/golden
   main-is:          Spec.hs
   default-language: Haskell2010
-  other-modules:    SpacetimeDB.BSATN.DecoderSpec
+  other-modules:    Generated
+                    SpacetimeDB.Codegen.SchemaSpec
+                    SpacetimeDB.Codegen.GoldenSpec
+                    SpacetimeDB.Codegen.GeneratedRoundtripSpec
+                    SpacetimeDB.BSATN.DecoderSpec
                     SpacetimeDB.BSATN.EncoderSpec
                     SpacetimeDB.BSATN.RoundtripSpec
                     SpacetimeDB.BSATN.TypesSpec

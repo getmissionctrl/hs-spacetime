@@ -36,11 +36,19 @@ module SpacetimeDB.Client
 
     -- * Calls
   , ReplyPayload (..)
+  , ReducerReply (..)
+  , ProcedureReply (..)
+  , QueryReply (..)
   , TypedRows (..)
   , TypedSink
   , callReducer
   , callProcedure
   , oneOffQuery
+
+    -- * Support for generated code
+  , buildArgs
+  , reducerReply
+  , procedureReply
   ) where
 
 import Control.Concurrent.Async (async, cancel)
@@ -51,13 +59,15 @@ import qualified Data.ByteString.Builder as B
 import qualified Data.Map.Strict as M
 import Data.Maybe (isJust)
 import Data.Text (Text)
+import qualified Data.Text as T
 import Data.Word (Word32)
+import SpacetimeDB.BSATN.Decoder (Decoder, runExact)
 import SpacetimeDB.Client.Connection
 import SpacetimeDB.Client.Endpoint
 import SpacetimeDB.Client.State (LiveSub (..))
 import qualified SpacetimeDB.Client.State as St
-import SpacetimeDB.Client.Types (ClientError, Event)
-import SpacetimeDB.Protocol.Messages (Compression (..), encodeCallProcedure, encodeCallReducer, encodeOneOffQuery, encodeSubscribe, encodeUnsubscribe)
+import SpacetimeDB.Client.Types (ClientError, Event, ProcedureReply (..), QueryReply (..), ReducerReply (..))
+import SpacetimeDB.Protocol.Messages (Compression (..), ProcedureStatus (..), ReducerOutcome (..), encodeCallProcedure, encodeCallReducer, encodeOneOffQuery, encodeSubscribe, encodeUnsubscribe)
 
 {- | A fresh @NoReconnect@, Brotli-compressed, insecure config for
 @host@/@port@/@database@.
@@ -224,3 +234,30 @@ enqueueCall c name mkFrame cont = do
         modifyTVar' (clCallCbs c) (M.insert r cont)
         pure r
       enqueue c (runBuilder (mkFrame (fromIntegral rid)))
+
+{- | Concatenate BSATN field encoders into an opaque args payload. Used by the
+generated typed reducer/procedure wrappers.
+-}
+buildArgs :: [B.Builder] -> ByteString
+buildArgs = runBuilder . mconcat
+
+-- | Interpret a reducer reply against the generated ok/err decoders.
+reducerReply :: Decoder a -> Decoder e -> ReplyPayload -> ReducerReply a e
+reducerReply okD errD payload = case payload of
+  ReplyReducer (OutcomeOk bs _) ->
+    either (ReducerCallFailed . T.pack . show) Returned (runExact okD bs)
+  ReplyReducer OutcomeOkEmpty -> ReturnedNothing
+  ReplyReducer (OutcomeErr bs) ->
+    either (ReducerCallFailed . T.pack . show) Failed (runExact errD bs)
+  ReplyReducer (OutcomeInternalError m) -> ReducerCallFailed m
+  ReplyCallFailed why -> ReducerCallFailed why
+  _ -> ReducerCallFailed "unexpected reply kind"
+
+-- | Interpret a procedure reply against the generated return decoder.
+procedureReply :: Decoder a -> ReplyPayload -> ProcedureReply a
+procedureReply okD payload = case payload of
+  ReplyProcedure (ProcReturned bs) ->
+    either (ProcedureCallFailed . T.pack . show) ProcReturnedVal (runExact okD bs)
+  ReplyProcedure (ProcInternalError m) -> ProcedureCallFailed m
+  ReplyCallFailed why -> ProcedureCallFailed why
+  _ -> ProcedureCallFailed "unexpected reply kind"
