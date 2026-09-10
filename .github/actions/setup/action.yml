@@ -1,0 +1,12 @@
+name: Setup
+description: Install Nix and restore the cabal build cache.
+runs:
+  using: composite
+  steps:
+    - name: Install Nix
+      uses: DeterminateSystems/nix-installer-action@main
+    - name: Cache build
+      uses: actions/cache@v6
+      with:
+        path: dist-newstyle
+        key: dist-${{ runner.os }}-${{ hashFiles('flake.lock','flake.nix','**/*.cabal','cabal.project','src/**/*.hs','test/**/*.hs','app/**/*.hs') }}
