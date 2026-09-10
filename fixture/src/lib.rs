@@ -1,6 +1,6 @@
 use spacetimedb::{reducer, table, ReducerContext, Table};
 
-#[table(name = widget, public)]
+#[table(accessor = widget, public)]
 pub struct Widget {
     #[primary_key]
     #[auto_inc]

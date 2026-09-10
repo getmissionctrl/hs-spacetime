@@ -1,0 +1,10 @@
+/home/ben/dev/hs-spacetime/.worktrees/haskell-client/fixture/target/wasm32-unknown-unknown/release/deps/ppv_lite86-9765b65b5d9e2151.d: /tmp/hs-st-rust/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ppv-lite86-0.2.21/src/lib.rs /tmp/hs-st-rust/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ppv-lite86-0.2.21/src/soft.rs /tmp/hs-st-rust/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ppv-lite86-0.2.21/src/types.rs /tmp/hs-st-rust/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ppv-lite86-0.2.21/src/generic.rs
+
+/home/ben/dev/hs-spacetime/.worktrees/haskell-client/fixture/target/wasm32-unknown-unknown/release/deps/libppv_lite86-9765b65b5d9e2151.rlib: /tmp/hs-st-rust/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ppv-lite86-0.2.21/src/lib.rs /tmp/hs-st-rust/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ppv-lite86-0.2.21/src/soft.rs /tmp/hs-st-rust/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ppv-lite86-0.2.21/src/types.rs /tmp/hs-st-rust/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ppv-lite86-0.2.21/src/generic.rs
+
+/home/ben/dev/hs-spacetime/.worktrees/haskell-client/fixture/target/wasm32-unknown-unknown/release/deps/libppv_lite86-9765b65b5d9e2151.rmeta: /tmp/hs-st-rust/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ppv-lite86-0.2.21/src/lib.rs /tmp/hs-st-rust/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ppv-lite86-0.2.21/src/soft.rs /tmp/hs-st-rust/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ppv-lite86-0.2.21/src/types.rs /tmp/hs-st-rust/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ppv-lite86-0.2.21/src/generic.rs
+
+/tmp/hs-st-rust/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ppv-lite86-0.2.21/src/lib.rs:
+/tmp/hs-st-rust/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ppv-lite86-0.2.21/src/soft.rs:
+/tmp/hs-st-rust/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ppv-lite86-0.2.21/src/types.rs:
+/tmp/hs-st-rust/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ppv-lite86-0.2.21/src/generic.rs:

@@ -51,6 +51,11 @@ boot() {
   ROOT="$(mktemp -d)"
   export HOME="$ROOT/home"
   mkdir -p "$HOME" "$ROOT/data"
+  # Rust toolchain state is kept persistent (and out of the throwaway HOME) so
+  # `spacetime build` can find a default toolchain + the wasm32 target. Provision
+  # once with:  rustup default stable && rustup target add wasm32-unknown-unknown
+  export RUSTUP_HOME="${HS_ST_RUSTUP_HOME:-/tmp/hs-st-rust/rustup}"
+  export CARGO_HOME="${HS_ST_CARGO_HOME:-/tmp/hs-st-rust/cargo}"
   local port
   port="$(pick_port)"
   # Build first so a compile error fails loudly before the server starts.
