@@ -8,6 +8,9 @@ import qualified SpacetimeDB.BSATN.TypesSpec
 import qualified SpacetimeDB.Protocol.RowListSpec
 import qualified SpacetimeDB.Protocol.MessagesSpec
 import qualified SpacetimeDB.Protocol.FrameSpec
+import qualified SpacetimeDB.Client.EndpointSpec
+import qualified SpacetimeDB.Client.StateSpec
+import qualified SpacetimeDB.Client.DispatchSpec
 
 main :: IO ()
 main = hspec $ do
@@ -18,3 +21,6 @@ main = hspec $ do
   describe "SpacetimeDB.Protocol.RowList" SpacetimeDB.Protocol.RowListSpec.spec
   describe "SpacetimeDB.Protocol.Messages" SpacetimeDB.Protocol.MessagesSpec.spec
   describe "SpacetimeDB.Protocol.Frame" SpacetimeDB.Protocol.FrameSpec.spec
+  describe "SpacetimeDB.Client.Endpoint" SpacetimeDB.Client.EndpointSpec.spec
+  describe "SpacetimeDB.Client.State" SpacetimeDB.Client.StateSpec.spec
+  describe "SpacetimeDB.Client.Dispatch" SpacetimeDB.Client.DispatchSpec.spec

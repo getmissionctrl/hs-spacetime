@@ -19,6 +19,10 @@ library
                     SpacetimeDB.Protocol.RowList
                     SpacetimeDB.Protocol.Messages
                     SpacetimeDB.Protocol.Frame
+                    SpacetimeDB.Client.Endpoint
+                    SpacetimeDB.Client.Types
+                    SpacetimeDB.Client.State
+                    SpacetimeDB.Client.Dispatch
   build-depends:    base >=4.14 && <5
                   , bytestring
                   , text
@@ -49,5 +53,8 @@ test-suite hs-spacetime-test
                     SpacetimeDB.Protocol.RowListSpec
                     SpacetimeDB.Protocol.MessagesSpec
                     SpacetimeDB.Protocol.FrameSpec
+                    SpacetimeDB.Client.EndpointSpec
+                    SpacetimeDB.Client.StateSpec
+                    SpacetimeDB.Client.DispatchSpec
   build-depends:    base, hs-spacetime, hspec, QuickCheck
                   , bytestring, text, containers, wide-word, zlib
