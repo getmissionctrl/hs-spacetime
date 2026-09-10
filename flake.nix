@@ -4,13 +4,13 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
-    # NOTE: the `spacetimedb` input and the `.#live` dev shell are added in
-    # Phase 6 (Task 6.1). Keeping them out of the initial flake means the
-    # hermetic dev shell does not need to fetch/build the (large, Rust)
-    # SpacetimeDB tree just to compile and test Phases 1–4.
+    spacetimedb = {
+      url = "github:clockworklabs/SpacetimeDB";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = { self, nixpkgs, flake-utils }:
+  outputs = { self, nixpkgs, flake-utils, spacetimedb }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = import nixpkgs { inherit system; };
@@ -21,9 +21,19 @@
           nativeBuildInputs = (old.nativeBuildInputs or [])
             ++ [ pkgs.cabal-install pkgs.fourmolu pkgs.brotli pkgs.zlib pkgs.pkg-config ];
         });
+        # Live shell: everything in dev, plus the spacetime CLI + a Rust wasm
+        # toolchain for building the fixture module. Kept out of `dev` so CI
+        # carries no compiler.
+        spacetimeCli = spacetimedb.packages.${system}.spacetime;
+        live = dev.overrideAttrs (old: {
+          nativeBuildInputs = (old.nativeBuildInputs or [])
+            ++ [ spacetimeCli pkgs.rustup ];
+        });
       in {
         packages.default = hs-spacetime;
+        packages.spacetime = spacetimeCli;
         devShells.dev = dev;
         devShells.default = dev;
+        devShells.live = live;
       });
 }
