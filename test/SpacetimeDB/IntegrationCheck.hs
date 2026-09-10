@@ -1,8 +1,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 
--- | Opt-in end-to-end checks against a real SpacetimeDB server booted by the
--- harness. Gated behind @SPACETIMEDB_INTEGRATION=1@ so the default suite stays
--- hermetic.
+{- | Opt-in end-to-end checks against a real SpacetimeDB server booted by the
+harness. Gated behind @SPACETIMEDB_INTEGRATION=1@ so the default suite stays
+hermetic.
+-}
 module SpacetimeDB.IntegrationCheck (spec) where
 
 import Control.Concurrent.MVar
@@ -10,11 +11,11 @@ import Control.Concurrent.STM
 import Control.Monad (unless)
 import Data.Function ((&))
 import qualified Data.Text as T
-import Test.Hspec
 import SpacetimeDB.BSATN.Encoder (encodeString, encodeU32)
 import SpacetimeDB.Client
 import SpacetimeDB.Client.Types (Event (..))
 import SpacetimeDB.Live.Harness (waitUntil, withLiveServer)
+import Test.Hspec
 
 spec :: Spec
 spec = describe "live end-to-end" $
@@ -59,10 +60,10 @@ spec = describe "live end-to-end" $
       unless changed $ expectationFailure "no Changed widget event after add_widget"
 
       stop client
-  where
-    isConnected Connected {} = True
-    isConnected _ = False
-    isInitialWidget (InitialRows t rows) = t == T.pack "widget" && not (null rows)
-    isInitialWidget _ = False
-    isChangedWidget (Changed t ins _) = t == T.pack "widget" && not (null ins)
-    isChangedWidget _ = False
+ where
+  isConnected Connected {} = True
+  isConnected _ = False
+  isInitialWidget (InitialRows t rows) = t == T.pack "widget" && not (null rows)
+  isInitialWidget _ = False
+  isChangedWidget (Changed t ins _) = t == T.pack "widget" && not (null ins)
+  isChangedWidget _ = False

@@ -11,9 +11,9 @@ import qualified SpacetimeDB.Client.StateSpec
 import qualified SpacetimeDB.Codegen.GeneratedRoundtripSpec
 import qualified SpacetimeDB.Codegen.GoldenSpec
 import qualified SpacetimeDB.Codegen.SchemaSpec
+import qualified SpacetimeDB.IntegrationCheck
 import qualified SpacetimeDB.Protocol.FrameSpec
 import qualified SpacetimeDB.Protocol.MessagesSpec
-import qualified SpacetimeDB.IntegrationCheck
 import qualified SpacetimeDB.Protocol.RowListSpec
 import System.Environment (lookupEnv)
 import Test.Hspec (Spec, describe, hspec)
