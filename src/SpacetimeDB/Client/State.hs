@@ -2,8 +2,12 @@ module SpacetimeDB.Client.State
   ( ClientState (..)
   , LiveSub (..)
   , emptyState
-  , allocateCall, takePending, drainPending
-  , allocateSub, forgetSub, subForId
+  , allocateCall
+  , takePending
+  , drainPending
+  , allocateSub
+  , forgetSub
+  , subForId
   , learnToken
   ) where
 

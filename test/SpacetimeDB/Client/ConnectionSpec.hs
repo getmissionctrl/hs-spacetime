@@ -4,9 +4,9 @@ import Control.Concurrent (threadDelay)
 import Data.Function ((&))
 import Data.IORef
 import qualified Data.Text as T
-import Test.Hspec
 import SpacetimeDB.Client
 import SpacetimeDB.Client.Types
+import Test.Hspec
 
 spec :: Spec
 spec = do
@@ -32,6 +32,6 @@ spec = do
       Right c -> do threadDelay 300000; stop c
     evs <- readIORef seen
     any isReconnecting evs `shouldBe` True
-  where
-    isReconnecting (Reconnecting 1 _) = True
-    isReconnecting _ = False
+ where
+  isReconnecting (Reconnecting 1 _) = True
+  isReconnecting _ = False

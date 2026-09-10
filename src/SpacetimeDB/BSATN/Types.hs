@@ -1,11 +1,25 @@
 module SpacetimeDB.BSATN.Types
-  ( Identity, identityFromInteger, identityToInteger, identityToHex
-  , decodeIdentity, encodeIdentity
-  , ConnectionId, connectionIdFromInteger, connectionIdToInteger, connectionIdToHex
-  , decodeConnectionId, encodeConnectionId
-  , Timestamp (..), decodeTimestamp, encodeTimestamp
-  , TimeDuration (..), decodeTimeDuration, encodeTimeDuration
-  , Uuid (..), decodeUuid, encodeUuid
+  ( Identity
+  , identityFromInteger
+  , identityToInteger
+  , identityToHex
+  , decodeIdentity
+  , encodeIdentity
+  , ConnectionId
+  , connectionIdFromInteger
+  , connectionIdToInteger
+  , connectionIdToHex
+  , decodeConnectionId
+  , encodeConnectionId
+  , Timestamp (..)
+  , decodeTimestamp
+  , encodeTimestamp
+  , TimeDuration (..)
+  , decodeTimeDuration
+  , encodeTimeDuration
+  , Uuid (..)
+  , decodeUuid
+  , encodeUuid
   ) where
 
 import Data.Int (Int64)

@@ -5,16 +5,16 @@ module SpacetimeDB.Protocol.Frame
   , decodeFrame
   ) where
 
+import qualified Codec.Compression.Brotli as Brotli
+import qualified Codec.Compression.GZip as GZip
 import Control.Exception (SomeException, evaluate, try)
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BL
 import Data.Word (Word8)
-import qualified Codec.Compression.Brotli as Brotli
-import qualified Codec.Compression.GZip as GZip
-import System.IO.Unsafe (unsafePerformIO)
 import SpacetimeDB.BSATN.Decoder (DecodeError, runExact)
 import SpacetimeDB.Protocol.Messages (ServerMessage, decodeServerMessage)
+import System.IO.Unsafe (unsafePerformIO)
 
 data FrameError
   = EmptyFrame

@@ -1,13 +1,31 @@
 module SpacetimeDB.BSATN.Encoder
   ( Encoder
   , runEncoder
-  , encodeU8, encodeU16, encodeU32, encodeU64, encodeU128, encodeU256
-  , encodeI8, encodeI16, encodeI32, encodeI64, encodeI128, encodeI256
-  , encodeF32, encodeF64, encodeBool
-  , encodeString, encodeBytes
-  , concatE, contramap, encodeSum
-  , encodeList, encodeOptional, encodeResult
-  , encodeListOf, encodeOptionalOf
+  , encodeU8
+  , encodeU16
+  , encodeU32
+  , encodeU64
+  , encodeU128
+  , encodeU256
+  , encodeI8
+  , encodeI16
+  , encodeI32
+  , encodeI64
+  , encodeI128
+  , encodeI256
+  , encodeF32
+  , encodeF64
+  , encodeBool
+  , encodeString
+  , encodeBytes
+  , concatE
+  , contramap
+  , encodeSum
+  , encodeList
+  , encodeOptional
+  , encodeResult
+  , encodeListOf
+  , encodeOptionalOf
   ) where
 
 import Data.Bits (shiftR, (.&.))
@@ -15,11 +33,11 @@ import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Builder as B
 import qualified Data.ByteString.Lazy as BL
-import Data.Int (Int8, Int16, Int32, Int64)
+import Data.Int (Int16, Int32, Int64, Int8)
 import Data.Text (Text)
 import qualified Data.Text.Encoding as TE
 import Data.WideWord (Int128, Int256, Word128, Word256)
-import Data.Word (Word8, Word16, Word32, Word64)
+import Data.Word (Word16, Word32, Word64, Word8)
 
 type Encoder a = a -> B.Builder
 
@@ -50,9 +68,9 @@ encodeF64 = B.doubleLE
 -- Wide words: emit LE bytes by repeated shift.
 leBytesOf :: Int -> Integer -> B.Builder
 leBytesOf n = go n
-  where
-    go 0 _ = mempty
-    go k v = B.word8 (fromIntegral (v .&. 0xFF)) <> go (k - 1) (v `shiftR` 8)
+ where
+  go 0 _ = mempty
+  go k v = B.word8 (fromIntegral (v .&. 0xFF)) <> go (k - 1) (v `shiftR` 8)
 
 encodeU128 :: Encoder Word128
 encodeU128 = leBytesOf 16 . toInteger
@@ -64,7 +82,7 @@ encodeI256 :: Encoder Int256
 encodeI256 = leBytesOf 32 . toIntegerMod (32 * 8)
 
 -- two's-complement wrap into an unsigned Integer of the given bit width
-toIntegerMod :: Integral a => Int -> a -> Integer
+toIntegerMod :: (Integral a) => Int -> a -> Integer
 toIntegerMod bits x = toInteger x `mod` (2 ^ bits)
 
 encodeBool :: Encoder Bool

@@ -8,21 +8,38 @@ module SpacetimeDB.BSATN.Decoder
   , word8
   , success
   , sumD
-  , u8, i8, u16, i16, u32, i32, u64, i64, u128, i128, u256, i256
-  , f32, f64, bool
+  , u8
+  , i8
+  , u16
+  , i16
+  , u32
+  , i32
+  , u64
+  , i64
+  , u128
+  , i128
+  , u256
+  , i256
+  , f32
+  , f64
+  , bool
   , runExact
-  , string, bytes, list, optional, decodeRows
+  , string
+  , bytes
+  , list
+  , optional
+  , decodeRows
   , result
   ) where
 
 import Data.Bits (shiftL, (.|.))
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
-import Data.Int (Int8, Int16, Int32, Int64)
+import Data.Int (Int16, Int32, Int64, Int8)
 import Data.Text (Text)
 import qualified Data.Text.Encoding as TE
 import Data.WideWord (Int128, Int256, Word128, Word256)
-import Data.Word (Word8, Word16, Word32, Word64)
+import Data.Word (Word16, Word32, Word64, Word8)
 import GHC.Float (castWord32ToFloat, castWord64ToDouble)
 
 data DecodeError
@@ -33,7 +50,7 @@ data DecodeError
   | Custom Text
   deriving (Eq, Show)
 
-newtype Decoder a = Decoder { runDecoder :: ByteString -> Either DecodeError (a, ByteString) }
+newtype Decoder a = Decoder {runDecoder :: ByteString -> Either DecodeError (a, ByteString)}
 
 -- | Consume exactly @n@ bytes or fail.
 takeBytes :: Int -> Decoder ByteString
@@ -77,8 +94,9 @@ sumD pick = do
     Left e -> Decoder (const (Left e))
     Right d -> d
 
--- | Assemble an unsigned little-endian integer of @n@ bytes into an Integer,
--- then narrow with fromInteger at the call site.
+{- | Assemble an unsigned little-endian integer of @n@ bytes into an Integer,
+then narrow with fromInteger at the call site.
+-}
 leUnsigned :: Int -> Decoder Integer
 leUnsigned n = do
   bs <- takeBytes n
@@ -148,9 +166,9 @@ list :: Decoder a -> Decoder [a]
 list elemD = do
   n <- u32
   go (fromIntegral n) []
-  where
-    go 0 acc = pure (reverse acc)
-    go k acc = do x <- elemD; go (k - 1 :: Int) (x : acc)
+ where
+  go 0 acc = pure (reverse acc)
+  go k acc = do x <- elemD; go (k - 1 :: Int) (x : acc)
 
 -- | Option: tag 0 = some, tag 1 = none.
 optional :: Decoder a -> Decoder (Maybe a)
@@ -162,11 +180,11 @@ optional someD = sumD $ \t -> case t of
 -- | runExact each row of a split row list, reporting the index that failed.
 decodeRows :: Decoder a -> [ByteString] -> Either (Int, DecodeError) [a]
 decodeRows d = go 0 []
-  where
-    go _ acc [] = Right (reverse acc)
-    go i acc (r : rs) = case runExact d r of
-      Left e -> Left (i, e)
-      Right a -> go (i + 1) (a : acc) rs
+ where
+  go _ acc [] = Right (reverse acc)
+  go i acc (r : rs) = case runExact d r of
+    Left e -> Left (i, e)
+    Right a -> go (i + 1) (a : acc) rs
 
 -- | Result: tag 0 = ok, tag 1 = err.
 result :: Decoder e -> Decoder a -> Decoder (Either e a)

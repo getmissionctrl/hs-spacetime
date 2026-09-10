@@ -1,9 +1,9 @@
 module SpacetimeDB.Client.EndpointSpec (spec) where
 
 import qualified Data.Text as T
-import Test.Hspec
 import SpacetimeDB.Client.Endpoint
 import SpacetimeDB.Protocol.Messages (Compression (..))
+import Test.Hspec
 
 spec :: Spec
 spec = do

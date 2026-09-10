@@ -2,8 +2,8 @@ module SpacetimeDB.Client.StateSpec (spec) where
 
 import qualified Data.Map.Strict as M
 import qualified Data.Text as T
-import Test.Hspec
 import SpacetimeDB.Client.State
+import Test.Hspec
 
 spec :: Spec
 spec = do

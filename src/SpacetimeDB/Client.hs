@@ -1,13 +1,14 @@
 {-# LANGUAGE OverloadedStrings #-}
 
--- | The public client surface: an immutable builder, a durable handle, and the
--- callback-only call operations.
---
--- __Threading contract:__ every callback (@onEvent@, @onError@, typed
--- subscription sinks, and call continuations) runs on one of the client's own
--- threads. Callbacks must be short and must not call a blocking handle
--- operation (e.g. 'start' waiting on the first connect), since that would wait
--- on state the callback's own thread is servicing.
+{- | The public client surface: an immutable builder, a durable handle, and the
+callback-only call operations.
+
+__Threading contract:__ every callback (@onEvent@, @onError@, typed
+subscription sinks, and call continuations) runs on one of the client's own
+threads. Callbacks must be short and must not call a blocking handle
+operation (e.g. 'start' waiting on the first connect), since that would wait
+on state the callback's own thread is servicing.
+-}
 module SpacetimeDB.Client
   ( -- * Config / builder
     Config
@@ -58,8 +59,9 @@ import qualified SpacetimeDB.Client.State as St
 import SpacetimeDB.Client.Types (ClientError, Event)
 import SpacetimeDB.Protocol.Messages (Compression (..), encodeCallProcedure, encodeCallReducer, encodeOneOffQuery, encodeSubscribe, encodeUnsubscribe)
 
--- | A fresh @NoReconnect@, Brotli-compressed, insecure config for
--- @host@/@port@/@database@.
+{- | A fresh @NoReconnect@, Brotli-compressed, insecure config for
+@host@/@port@/@database@.
+-}
 builder :: Text -> Int -> Text -> Config
 builder host port db =
   Config
@@ -73,10 +75,10 @@ builder host port db =
 
 withSecure :: Bool -> Config -> Config
 withSecure sec cfg = cfg {cfgEndpoint = setSecure (cfgEndpoint cfg)}
-  where
-    setSecure ep = case epBase ep of
-      HostPort h p _ -> ep {epBase = HostPort h p sec}
-      other -> ep {epBase = other}
+ where
+  setSecure ep = case epBase ep of
+    HostPort h p _ -> ep {epBase = HostPort h p sec}
+    other -> ep {epBase = other}
 
 withBaseUri :: Text -> Config -> Config
 withBaseUri u cfg = cfg {cfgEndpoint = (cfgEndpoint cfg) {epBase = BaseUri u}}
@@ -97,8 +99,9 @@ withReconnect p cfg = cfg {cfgReconnect = p}
 subscribe :: Text -> Config -> Config
 subscribe q cfg = cfg {cfgSubs = cfgSubs cfg ++ [RawSub q Nothing Nothing]}
 
--- | Declare a typed subscription bound to @table@; rows are delivered to
--- @sink@ instead of the event callback.
+{- | Declare a typed subscription bound to @table@; rows are delivered to
+@sink@ instead of the event callback.
+-}
 subscribeQuery :: Text -> Text -> TypedSink -> Config -> Config
 subscribeQuery table q sink cfg = cfg {cfgSubs = cfgSubs cfg ++ [RawSub q (Just table) (Just sink)]}
 
@@ -108,9 +111,10 @@ onEvent f cfg = cfg {cfgOnEvent = f}
 onError :: (ClientError -> IO ()) -> Config -> Config
 onError f cfg = cfg {cfgOnError = f}
 
--- | Connect. With 'NoReconnect' this blocks on the first handshake and returns
--- 'Left' on failure; with a 'Reconnect' policy it returns a handle immediately
--- and retries in the background.
+{- | Connect. With 'NoReconnect' this blocks on the first handshake and returns
+'Left' on failure; with a 'Reconnect' policy it returns a handle immediately
+and retries in the background.
+-}
 start :: Config -> IO (Either Text Client)
 start cfg = do
   let st0 = maybe St.emptyState (St.learnToken St.emptyState) (cfgToken cfg)
@@ -148,16 +152,18 @@ stop c = do
   msup <- readTVarIO (clSup c)
   mapM_ cancel msup
 
--- | The current session token (server-issued at connect, persists across
--- reconnects), if any.
+{- | The current session token (server-issued at connect, persists across
+reconnects), if any.
+-}
 token :: Client -> IO (Maybe Text)
 token c = St.token <$> readTVarIO (clState c)
 
 isConnected :: Client -> STM Bool
 isConnected c = isJust <$> readTVar (clConn c)
 
--- | Add a raw subscription at runtime, returning its id. Sends immediately if
--- connected; otherwise it opens on the next connect.
+{- | Add a raw subscription at runtime, returning its id. Sends immediately if
+connected; otherwise it opens on the next connect.
+-}
 addSubscription :: Client -> Text -> IO Word32
 addSubscription c q = addSub c q Nothing Nothing
 
@@ -188,8 +194,9 @@ unsubscribe c qsid = do
     isConnected c
   when connected $ enqueue c (runBuilder (encodeUnsubscribe qsid qsid 0))
 
--- | Call a reducer by canonical @name@ with opaque BSATN @args@; the outcome
--- is delivered to @cont@.
+{- | Call a reducer by canonical @name@ with opaque BSATN @args@; the outcome
+is delivered to @cont@.
+-}
 callReducer :: Client -> Text -> ByteString -> CallCont -> IO ()
 callReducer c name args = enqueueCall c name (\rid -> encodeCallReducer rid 0 name args)
 
@@ -201,8 +208,9 @@ callProcedure c name args = enqueueCall c name (\rid -> encodeCallProcedure rid 
 oneOffQuery :: Client -> Text -> CallCont -> IO ()
 oneOffQuery c query = enqueueCall c query (`encodeOneOffQuery` query)
 
--- | Allocate a request id, store @cont@, and enqueue the frame. If there is no
--- live socket the continuation is run immediately with 'ReplyCallFailed'.
+{- | Allocate a request id, store @cont@, and enqueue the frame. If there is no
+live socket the continuation is run immediately with 'ReplyCallFailed'.
+-}
 enqueueCall :: Client -> Text -> (Word32 -> B.Builder) -> CallCont -> IO ()
 enqueueCall c name mkFrame cont = do
   connected <- readTVarIO (clConn c)

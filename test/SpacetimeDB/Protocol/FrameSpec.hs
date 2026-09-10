@@ -8,10 +8,10 @@ import qualified Data.ByteString.Lazy as BL
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Word (Word8)
-import Test.Hspec
 import SpacetimeDB.BSATN.Types
 import SpacetimeDB.Protocol.Frame
 import SpacetimeDB.Protocol.Messages
+import Test.Hspec
 
 identityOf :: Integer -> Identity
 identityOf = identityFromInteger

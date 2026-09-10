@@ -1,21 +1,28 @@
 module SpacetimeDB.Protocol.Messages
   ( Compression (..)
   , ServerMessage (..)
-  , QueryRows (..), SingleTableRows (..)
-  , QuerySetUpdate (..), TableUpdate (..), TableUpdateRows (..)
-  , ReducerOutcome (..), ProcedureStatus (..)
+  , QueryRows (..)
+  , SingleTableRows (..)
+  , QuerySetUpdate (..)
+  , TableUpdate (..)
+  , TableUpdateRows (..)
+  , ReducerOutcome (..)
+  , ProcedureStatus (..)
   , decodeServerMessage
   , decodeReducerOutcome
   , ClientMessage (..)
   , encodeClientMessage
-  , encodeSubscribe, encodeUnsubscribe, encodeOneOffQuery
-  , encodeCallReducer, encodeCallProcedure
+  , encodeSubscribe
+  , encodeUnsubscribe
+  , encodeOneOffQuery
+  , encodeCallReducer
+  , encodeCallProcedure
   ) where
 
 import Data.ByteString (ByteString)
 import qualified Data.ByteString.Builder as B
 import Data.Text (Text)
-import Data.Word (Word8, Word32)
+import Data.Word (Word32, Word8)
 import SpacetimeDB.BSATN.Decoder
 import SpacetimeDB.BSATN.Encoder
 import SpacetimeDB.BSATN.Types
@@ -90,8 +97,14 @@ decodeServerMessage = sumD $ \t -> case t of
   4 -> Right (TransactionUpdate <$> list decodeQuerySetUpdate)
   5 -> Right (OneOffQueryResult <$> u32 <*> result string decodeQueryRows)
   6 -> Right (ReducerResult <$> u32 <*> decodeTimestamp <*> decodeReducerOutcome)
-  7 -> Right (ProcedureResult <$> decodeProcedureStatus <*> decodeTimestamp
-                              <*> decodeTimeDuration <*> u32)
+  7 ->
+    Right
+      ( ProcedureResult
+          <$> decodeProcedureStatus
+          <*> decodeTimestamp
+          <*> decodeTimeDuration
+          <*> u32
+      )
   _ -> Right (pure (Unhandled t))
 
 data ClientMessage

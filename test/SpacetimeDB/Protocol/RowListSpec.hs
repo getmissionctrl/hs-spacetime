@@ -1,9 +1,9 @@
 module SpacetimeDB.Protocol.RowListSpec (spec) where
 
 import qualified Data.ByteString as BS
-import Test.Hspec
 import SpacetimeDB.BSATN.Decoder (runExact)
 import SpacetimeDB.Protocol.RowList
+import Test.Hspec
 
 spec :: Spec
 spec = do

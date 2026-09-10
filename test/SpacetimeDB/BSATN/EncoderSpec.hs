@@ -4,8 +4,8 @@ module SpacetimeDB.BSATN.EncoderSpec (spec) where
 
 import qualified Data.ByteString as BS
 import qualified Data.Text as T
-import Test.Hspec
 import SpacetimeDB.BSATN.Encoder
+import Test.Hspec
 
 spec :: Spec
 spec = do

@@ -4,12 +4,12 @@
 module SpacetimeDB.BSATN.DecoderSpec (spec) where
 
 import qualified Data.ByteString as BS
-import qualified Data.Text as T
 import Data.Int (Int8)
-import Data.Word (Word16, Word32, Word64)
+import qualified Data.Text as T
 import Data.WideWord (Word128)
-import Test.Hspec
+import Data.Word (Word16, Word32, Word64)
 import SpacetimeDB.BSATN.Decoder
+import Test.Hspec
 
 spec :: Spec
 spec = do
@@ -31,9 +31,9 @@ spec = do
       runDecoder d (BS.pack [1, 2, 3]) `shouldBe` Right ((1, 2), BS.pack [3])
     it "sumD dispatches on the tag" $ do
       let d = sumD $ \t -> case t of
-                0 -> Right (success "zero")
-                1 -> Right (fmap show word8)
-                _ -> Left (UnknownVariant t)
+            0 -> Right (success "zero")
+            1 -> Right (fmap show word8)
+            _ -> Left (UnknownVariant t)
       runDecoder d (BS.pack [1, 9]) `shouldBe` Right ("9", BS.empty)
     it "sumD reports unknown variants" $ do
       let d = sumD $ \t -> if t == 0 then Right (success ()) else Left (UnknownVariant t)

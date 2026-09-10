@@ -26,19 +26,19 @@ data EndpointConfig = EndpointConfig
 subscribeUrl :: EndpointConfig -> Text
 subscribeUrl (EndpointConfig base db comp confirmed) =
   root <> "/v1/database/" <> db <> "/subscribe?compression=" <> compName comp <> confirmedParam
-  where
-    root = case base of
-      HostPort h p secure ->
-        (if secure then "https://" else "http://") <> h <> ":" <> T.pack (show p)
-      BaseUri u -> rewrite (T.dropWhileEnd (== '/') u)
-    rewrite u
-      | "wss://" `T.isPrefixOf` u = "https://" <> T.drop 6 u
-      | "ws://" `T.isPrefixOf` u = "http://" <> T.drop 5 u
-      | otherwise = u
-    compName CompNone = "None"
-    compName CompBrotli = "Brotli"
-    compName CompGzip = "Gzip"
-    confirmedParam = case confirmed of
-      Nothing -> ""
-      Just True -> "&confirmed=true"
-      Just False -> "&confirmed=false"
+ where
+  root = case base of
+    HostPort h p secure ->
+      (if secure then "https://" else "http://") <> h <> ":" <> T.pack (show p)
+    BaseUri u -> rewrite (T.dropWhileEnd (== '/') u)
+  rewrite u
+    | "wss://" `T.isPrefixOf` u = "https://" <> T.drop 6 u
+    | "ws://" `T.isPrefixOf` u = "http://" <> T.drop 5 u
+    | otherwise = u
+  compName CompNone = "None"
+  compName CompBrotli = "Brotli"
+  compName CompGzip = "Gzip"
+  confirmedParam = case confirmed of
+    Nothing -> ""
+    Just True -> "&confirmed=true"
+    Just False -> "&confirmed=false"

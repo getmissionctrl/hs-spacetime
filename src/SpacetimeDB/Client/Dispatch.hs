@@ -27,14 +27,14 @@ typedSubFor subs tbl =
 routeTableUpdate :: [LiveSub] -> TableUpdate -> [DispatchAction]
 routeTableUpdate subs (TableUpdate tbl rowsList) =
   concatMap (opFor tbl) rowsList
-  where
-    opFor t (PersistentTable ins del) = emit t ins del
-    opFor t (EventTable evs) = emit t evs []
-    emit t ins del
-      | null ins && null del = []
-      | otherwise = case typedSubFor subs t of
-          Just s -> [ToTyped t (subQuery s) ins del]
-          Nothing -> [ToRaw (Changed' t ins del)]
+ where
+  opFor t (PersistentTable ins del) = emit t ins del
+  opFor t (EventTable evs) = emit t evs []
+  emit t ins del
+    | null ins && null del = []
+    | otherwise = case typedSubFor subs t of
+        Just s -> [ToTyped t (subQuery s) ins del]
+        Nothing -> [ToRaw (Changed' t ins del)]
 
 routeInitial :: [LiveSub] -> SingleTableRows -> [DispatchAction]
 routeInitial subs (SingleTableRows tbl rows) =

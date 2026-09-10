@@ -2,10 +2,10 @@ module SpacetimeDB.Client.DispatchSpec (spec) where
 
 import qualified Data.ByteString as BS
 import qualified Data.Text as T
-import Test.Hspec
 import SpacetimeDB.Client.Dispatch
 import SpacetimeDB.Client.State (LiveSub (..))
 import SpacetimeDB.Protocol.Messages
+import Test.Hspec
 
 spec :: Spec
 spec = do

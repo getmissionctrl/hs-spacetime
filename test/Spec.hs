@@ -1,17 +1,17 @@
 module Main (main) where
 
-import Test.Hspec (hspec, describe)
 import qualified SpacetimeDB.BSATN.DecoderSpec
 import qualified SpacetimeDB.BSATN.EncoderSpec
 import qualified SpacetimeDB.BSATN.RoundtripSpec
 import qualified SpacetimeDB.BSATN.TypesSpec
-import qualified SpacetimeDB.Protocol.RowListSpec
-import qualified SpacetimeDB.Protocol.MessagesSpec
-import qualified SpacetimeDB.Protocol.FrameSpec
+import qualified SpacetimeDB.Client.ConnectionSpec
+import qualified SpacetimeDB.Client.DispatchSpec
 import qualified SpacetimeDB.Client.EndpointSpec
 import qualified SpacetimeDB.Client.StateSpec
-import qualified SpacetimeDB.Client.DispatchSpec
-import qualified SpacetimeDB.Client.ConnectionSpec
+import qualified SpacetimeDB.Protocol.FrameSpec
+import qualified SpacetimeDB.Protocol.MessagesSpec
+import qualified SpacetimeDB.Protocol.RowListSpec
+import Test.Hspec (describe, hspec)
 
 main :: IO ()
 main = hspec $ do

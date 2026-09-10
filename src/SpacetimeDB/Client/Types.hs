@@ -14,7 +14,7 @@ module SpacetimeDB.Client.Types
 import Data.ByteString (ByteString)
 import Data.Text (Text)
 import qualified Data.Text as T
-import Data.Word (Word8, Word32)
+import Data.Word (Word32, Word8)
 import SpacetimeDB.BSATN.Decoder (DecodeError)
 import SpacetimeDB.BSATN.Types (ConnectionId, Identity)
 
@@ -53,8 +53,13 @@ formatEvent e = case e of
   Reconnecting a d -> "reconnecting attempt " <> T.pack (show a) <> " in " <> T.pack (show d) <> "ms"
   InitialRows t rs -> "initial " <> t <> " (" <> T.pack (show (length rs)) <> " rows)"
   Changed t ins del ->
-    "changed " <> t <> " (+" <> T.pack (show (length ins))
-      <> " -" <> T.pack (show (length del)) <> ")"
+    "changed "
+      <> t
+      <> " (+"
+      <> T.pack (show (length ins))
+      <> " -"
+      <> T.pack (show (length del))
+      <> ")"
   SubscriptionFailed q m -> "subscription " <> T.pack (show q) <> " failed: " <> m
   Unsubscribed q -> "unsubscribed " <> T.pack (show q)
   UnhandledMessage tag -> "unhandled message tag " <> T.pack (show tag)

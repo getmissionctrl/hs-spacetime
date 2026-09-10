@@ -3,12 +3,12 @@
 module SpacetimeDB.BSATN.RoundtripSpec (spec) where
 
 import Data.Int (Int64)
-import Data.Word (Word64)
 import Data.WideWord (Word128)
-import Test.Hspec
-import Test.QuickCheck
+import Data.Word (Word64)
 import SpacetimeDB.BSATN.Decoder
 import SpacetimeDB.BSATN.Encoder
+import Test.Hspec
+import Test.QuickCheck
 
 -- Build a wide value from 30-bit chunks so the high bytes are exercised
 -- (QuickCheck's integral gen is 32-bit internally).
@@ -32,8 +32,11 @@ spec = do
     it "holds for wide randoms" $ property $ forAll wideWord64 $ \w ->
       runExact u64 (runEncoder encodeU64 w) === Right w
   describe "i64 round-trip" $
-    it "holds incl. -1" $ property $ \(i :: Int64) ->
-      runExact i64 (runEncoder encodeI64 i) === Right i
+    it "holds incl. -1" $
+      property $ \(i :: Int64) ->
+        runExact i64 (runEncoder encodeI64 i) === Right i
   describe "u128 round-trip" $
-    it "boundaries" $ mapM_ (roundtrip encodeU128 u128)
-      [0, 1, 2 ^ (127 :: Int), maxBound :: Word128]
+    it "boundaries" $
+      mapM_
+        (roundtrip encodeU128 u128)
+        [0, 1, 2 ^ (127 :: Int), maxBound :: Word128]

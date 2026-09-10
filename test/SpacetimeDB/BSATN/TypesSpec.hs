@@ -2,10 +2,10 @@ module SpacetimeDB.BSATN.TypesSpec (spec) where
 
 import qualified Data.ByteString as BS
 import qualified Data.Text as T
-import Test.Hspec
 import SpacetimeDB.BSATN.Decoder (runExact)
 import SpacetimeDB.BSATN.Encoder (runEncoder)
 import SpacetimeDB.BSATN.Types
+import Test.Hspec
 
 spec :: Spec
 spec = do
