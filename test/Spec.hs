@@ -11,6 +11,7 @@ import qualified SpacetimeDB.Protocol.FrameSpec
 import qualified SpacetimeDB.Client.EndpointSpec
 import qualified SpacetimeDB.Client.StateSpec
 import qualified SpacetimeDB.Client.DispatchSpec
+import qualified SpacetimeDB.Client.ConnectionSpec
 
 main :: IO ()
 main = hspec $ do
@@ -24,3 +25,4 @@ main = hspec $ do
   describe "SpacetimeDB.Client.Endpoint" SpacetimeDB.Client.EndpointSpec.spec
   describe "SpacetimeDB.Client.State" SpacetimeDB.Client.StateSpec.spec
   describe "SpacetimeDB.Client.Dispatch" SpacetimeDB.Client.DispatchSpec.spec
+  describe "SpacetimeDB.Client.Connection" SpacetimeDB.Client.ConnectionSpec.spec

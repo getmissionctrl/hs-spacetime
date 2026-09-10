@@ -23,6 +23,8 @@ library
                     SpacetimeDB.Client.Types
                     SpacetimeDB.Client.State
                     SpacetimeDB.Client.Dispatch
+                    SpacetimeDB.Client.Connection
+                    SpacetimeDB.Client
   build-depends:    base >=4.14 && <5
                   , bytestring
                   , text
@@ -39,6 +41,7 @@ library
                   , scientific
                   , vector
                   , unordered-containers
+                  , case-insensitive
 
 test-suite hs-spacetime-test
   import:           warnings
@@ -56,5 +59,6 @@ test-suite hs-spacetime-test
                     SpacetimeDB.Client.EndpointSpec
                     SpacetimeDB.Client.StateSpec
                     SpacetimeDB.Client.DispatchSpec
+                    SpacetimeDB.Client.ConnectionSpec
   build-depends:    base, hs-spacetime, hspec, QuickCheck
                   , bytestring, text, containers, wide-word, zlib
