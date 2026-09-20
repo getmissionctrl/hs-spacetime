@@ -1,0 +1,20 @@
+[package]
+name = "phase0-host"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "phase0_host"
+path = "src/lib.rs"
+
+[[bin]]
+name = "phase0-host"
+path = "src/main.rs"
+
+[dependencies]
+wasmtime = "27"
+wasmtime-wasi = "27"
+anyhow = "1"
+
+[dev-dependencies]
+wat = "1"
