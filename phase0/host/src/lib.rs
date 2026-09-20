@@ -70,6 +70,10 @@ impl Host {
     /// host functions than our minimal stubs cover) instantiate without error.
     /// The extra imports will trap if called, but `__describe_module__` only
     /// calls `bytes_sink_write`, so they are never reached on the describe path.
+    ///
+    /// NOTE: this mutates the linker (adds trap stubs for unknown imports). Do
+    /// not reuse this `Host` for a later strict `instantiate` call that must
+    /// enforce imports — construct a fresh `Host` instead.
     pub fn instantiate_allowing_unknown(&mut self, wasm: &[u8]) -> Result<Instance> {
         let module = Module::new(&self.engine, wasm).context("compile module")?;
         self.linker.define_unknown_imports_as_traps(&module).context("define unknown imports as traps")?;
