@@ -1,0 +1,34 @@
+# WASI snapshot_preview1 imports pulled in by the GHC RTS.
+# Captured from: wasm-tools print phase0/module/person-module.wasm
+# Format: name  (C signature; i32/i64) [wasm type index]
+#
+# Wasm func types referenced:
+#   type 0  (func (param i32 i32 i32) (result i32))
+#   type 1  (func (param i32 i32 i32 i32) (result i32))
+#   type 4  (func (param i32) (result i32))
+#   type 5  (func (param i32 i32) (result i32))
+#   type 6  (func (param i32))
+#   type 13 (func (param i32 i64 i32) (result i32))
+#   type 14 (func (param i32 i64) (result i32))
+#   type 15 (func (param i32 i64 i32 i32) (result i32))
+#   type 16 (func (param i32 i32 i32 i32 i32) (result i32))
+#   type 17 (func (param i32 i32 i32 i32 i32 i64 i64 i32 i32) (result i32))
+#
+environ_get             i32 (i32, i32)                                    [type 5]
+environ_sizes_get       i32 (i32, i32)                                    [type 5]
+clock_time_get          i32 (i32, i64, i32)                               [type 13]
+fd_close                i32 (i32)                                         [type 4]
+fd_fdstat_get           i32 (i32, i32)                                    [type 5]
+fd_fdstat_set_flags     i32 (i32, i32)                                    [type 5]
+fd_filestat_get         i32 (i32, i32)                                    [type 5]
+fd_filestat_set_size    i32 (i32, i64)                                    [type 14]
+fd_prestat_get          i32 (i32, i32)                                    [type 5]
+fd_prestat_dir_name     i32 (i32, i32, i32)                               [type 0]
+fd_read                 i32 (i32, i32, i32, i32)                          [type 1]
+fd_seek                 i32 (i32, i64, i32, i32)                          [type 15]
+fd_write                i32 (i32, i32, i32, i32)                          [type 1]
+path_create_directory   i32 (i32, i32, i32)                               [type 0]
+path_filestat_get       i32 (i32, i32, i32, i32, i32)                     [type 16]
+path_open               i32 (i32, i32, i32, i32, i32, i64, i64, i32, i32) [type 17]
+poll_oneoff             i32 (i32, i32, i32, i32)                          [type 1]
+proc_exit               void (i32)                                        [type 6]

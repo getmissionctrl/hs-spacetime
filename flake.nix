@@ -42,6 +42,7 @@
             wasmToolchain
             pkgs.wizer
             pkgs.wasm-tools
+            pkgs.binaryen
             pkgs.rustup
             pkgs.cargo
             spacetimeCli
