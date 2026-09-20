@@ -78,6 +78,10 @@ defineModule tbls rdcrs =
     TableSchema
       { name = tableName t
       , productTypeRef = i
+      , primaryKey = []
+      , indexes = []
+      , constraints = []
+      , sequences = []
       , tableType = UserTable
       , tableAccess = PublicTable
       , isEvent = False
@@ -86,9 +90,7 @@ defineModule tbls rdcrs =
     ReducerSchema
       { name = nm
       , params = paramFields (handlerArgType h)
-      , visibility = ClientCallable
-      , okType = TProduct []
-      , errType = TString
+      , lifecycle = Nothing
       }
   toReducer (ReducerReg _ h) = Reducer (handlerDecoder h) h
 

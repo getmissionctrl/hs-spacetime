@@ -11,20 +11,20 @@
 
 The encoded form is a versioned sum (@V10@ = tag 2) wrapping a
 @Vec\<RawModuleDefV10Section\>@. This module lets an author describe tables and
-reducers as Haskell values and emit the exact BSATN bytes the host expects,
-replacing the Phase-1 approach of embedding schema bytes captured from a Rust
-fixture. Byte-for-byte validated against the captured goldens (see SchemaSpec).
-
-Scope of this first cut: plain tables (no primary key / indexes / constraints /
-sequences / column defaults). Those add non-empty @ColList@ and def vecs and are
-layered on next, validated by the @widget@ golden.
+reducers as Haskell values and emit the exact BSATN bytes the host expects.
+Byte-for-byte validated against captured Rust goldens (@event@, @person@,
+@widget@; the last covers primary key / auto-inc / index / unique constraint /
+sequence / lifecycle reducer).
 -}
 module SpacetimeDB.Server.Schema
   ( AlgType (..)
   , Field (..)
-  , Visibility (..)
+  , Lifecycle (..)
   , TableType (..)
   , TableAccess (..)
+  , IndexDef (..)
+  , ConstraintDef (..)
+  , SequenceDef (..)
   , ReducerSchema (..)
   , TypeDefSchema (..)
   , TableSchema (..)
@@ -33,10 +33,12 @@ module SpacetimeDB.Server.Schema
   , encodeAlgType
   ) where
 
+import Data.Bits (shiftR, (.&.))
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Builder as B
+import Data.Maybe (mapMaybe)
 import Data.Text (Text)
-import Data.Word (Word32, Word8)
+import Data.Word (Word16, Word32, Word8)
 import GHC.Generics (Generic)
 import SpacetimeDB.BSATN.Encoder
 
@@ -74,7 +76,8 @@ data Field = Field
   }
   deriving stock (Eq, Show, Generic)
 
-data Visibility = Private | ClientCallable
+-- | Special roles a reducer can play in the module lifecycle.
+data Lifecycle = Init | OnConnect | OnDisconnect
   deriving stock (Eq, Show, Generic)
 
 data TableType = SystemTable | UserTable
@@ -83,12 +86,38 @@ data TableType = SystemTable | UserTable
 data TableAccess = PublicTable | PrivateTable
   deriving stock (Eq, Show, Generic)
 
+{- | A BTree index over the given columns. @sourceName@ follows the convention
+@{table}_{cols}_idx_btree@; @accessorName@ is the column accessor name.
+-}
+data IndexDef = IndexDef
+  { sourceName :: !(Maybe Text)
+  , accessorName :: !(Maybe Text)
+  , columns :: ![Word16]
+  }
+  deriving stock (Eq, Show, Generic)
+
+-- | A unique constraint over the given columns.
+data ConstraintDef = ConstraintDef
+  { sourceName :: !(Maybe Text)
+  , uniqueColumns :: ![Word16]
+  }
+  deriving stock (Eq, Show, Generic)
+
+-- | An auto-increment sequence on a column.
+data SequenceDef = SequenceDef
+  { sourceName :: !(Maybe Text)
+  , column :: !Word16
+  , start :: !(Maybe Integer)
+  , minValue :: !(Maybe Integer)
+  , maxValue :: !(Maybe Integer)
+  , increment :: !Integer
+  }
+  deriving stock (Eq, Show, Generic)
+
 data ReducerSchema = ReducerSchema
   { name :: !Text
   , params :: ![Field]
-  , visibility :: !Visibility
-  , okType :: !AlgType
-  , errType :: !AlgType
+  , lifecycle :: !(Maybe Lifecycle)
   }
   deriving stock (Eq, Show, Generic)
 
@@ -103,6 +132,10 @@ data TypeDefSchema = TypeDefSchema
 data TableSchema = TableSchema
   { name :: !Text
   , productTypeRef :: !Word32
+  , primaryKey :: ![Word16]
+  , indexes :: ![IndexDef]
+  , constraints :: ![ConstraintDef]
+  , sequences :: ![SequenceDef]
   , tableType :: !TableType
   , tableAccess :: !TableAccess
   , isEvent :: !Bool
@@ -121,18 +154,26 @@ data ModuleSchema = ModuleSchema
 encodeModule :: ModuleSchema -> BS.ByteString
 encodeModule m = runEncoder id (encodeSum 2 (encodeList (sections m) id))
 
-{- | The V10 sections, in the same order the Rust builder emits them so the
-output byte-matches captured goldens (the host itself decodes by tag, so the
-order is not semantically required).
+{- | The V10 sections, in the order the Rust builder emits them so the output
+byte-matches captured goldens. The LifeCycleReducers section appears only when
+some reducer has a lifecycle role.
 -}
 sections :: ModuleSchema -> [B.Builder]
 sections m =
   [ encodeSum 3 (encodeList m.reducers encodeReducer) -- Reducers
   , encodeSum 10 (encodeU32 0) -- ExplicitNames { entries: [] }
-  , encodeSum 0 (encodeList m.typespace encodeAlgType) -- Typespace
-  , encodeSum 1 (encodeList m.types encodeTypeDef) -- Types
-  , encodeSum 2 (encodeList m.tables encodeTable) -- Tables
   ]
+    ++ lifecycleSection
+    ++ [ encodeSum 0 (encodeList m.typespace encodeAlgType) -- Typespace
+       , encodeSum 1 (encodeList m.types encodeTypeDef) -- Types
+       , encodeSum 2 (encodeList m.tables encodeTable) -- Tables
+       ]
+ where
+  lcs = mapMaybe (\r -> (\lc -> (lc, r.name)) <$> r.lifecycle) m.reducers
+  lifecycleSection
+    | null lcs = []
+    | otherwise = [encodeSum 7 (encodeList lcs encodeLifecycleEntry)]
+  encodeLifecycleEntry (lc, nm) = encodeU8 (lifecycleTag lc) <> encodeString nm
 
 encodeAlgType :: Encoder AlgType
 encodeAlgType t = case t of
@@ -162,13 +203,14 @@ encodeAlgType t = case t of
 encodeField :: Encoder Field
 encodeField f = encodeOptional f.name encodeString <> encodeAlgType f.ty
 
+-- Lifecycle reducers are Private; all others are ClientCallable.
 encodeReducer :: Encoder ReducerSchema
 encodeReducer r =
   encodeString r.name
     <> encodeList r.params encodeField -- params : ProductType
-    <> encodeU8 (visibilityTag r.visibility)
-    <> encodeAlgType r.okType
-    <> encodeAlgType r.errType
+    <> encodeU8 (maybe 1 (const 0) r.lifecycle) -- FunctionVisibility: ClientCallable=1 / Private=0
+    <> encodeAlgType (TProduct []) -- ok_return_type = unit
+    <> encodeAlgType TString -- err_return_type = String
 
 encodeTypeDef :: Encoder TypeDefSchema
 encodeTypeDef t =
@@ -177,25 +219,53 @@ encodeTypeDef t =
     <> encodeU32 t.ref
     <> encodeBool t.customOrdering
 
-{- | Plain-table encoding: empty primary_key/indexes/constraints/sequences and
-default_values. TODO: real @ColList@ + these vecs for PK/auto_inc (widget).
--}
 encodeTable :: Encoder TableSchema
 encodeTable tb =
   encodeString tb.name
     <> encodeU32 tb.productTypeRef
-    <> encodeU32 0 -- primary_key : ColList (empty)
-    <> encodeU32 0 -- indexes
-    <> encodeU32 0 -- constraints
-    <> encodeU32 0 -- sequences
+    <> encodeColList tb.primaryKey
+    <> encodeList tb.indexes encodeIndex
+    <> encodeList tb.constraints encodeConstraint
+    <> encodeList tb.sequences encodeSequence
     <> encodeU8 (tableTypeTag tb.tableType)
     <> encodeU8 (tableAccessTag tb.tableAccess)
     <> encodeU32 0 -- default_values
     <> encodeBool tb.isEvent
 
-visibilityTag :: Visibility -> Word8
-visibilityTag Private = 0
-visibilityTag ClientCallable = 1
+-- | A @ColList@ serialises as a u32 count followed by one u16 per column.
+encodeColList :: Encoder [Word16]
+encodeColList cols = encodeList cols encodeU16
+
+encodeIndex :: Encoder IndexDef
+encodeIndex ix =
+  encodeOptional ix.sourceName encodeString
+    <> encodeOptional ix.accessorName encodeString
+    <> encodeSum 0 (encodeColList ix.columns) -- RawIndexAlgorithm::BTree
+
+encodeConstraint :: Encoder ConstraintDef
+encodeConstraint c =
+  encodeOptional c.sourceName encodeString
+    <> encodeSum 0 (encodeColList c.uniqueColumns) -- RawConstraintData::Unique
+
+encodeSequence :: Encoder SequenceDef
+encodeSequence sq =
+  encodeOptional sq.sourceName encodeString
+    <> encodeU16 sq.column
+    <> encodeOptional sq.start encodeI128Integer
+    <> encodeOptional sq.minValue encodeI128Integer
+    <> encodeOptional sq.maxValue encodeI128Integer
+    <> encodeI128Integer sq.increment
+
+-- | Encode an 'Integer' as a 16-byte little-endian i128 (two's complement wrap).
+encodeI128Integer :: Encoder Integer
+encodeI128Integer n = mconcat [B.word8 (fromIntegral ((m `shiftR` (8 * i)) .&. 0xff)) | i <- [0 .. 15]]
+ where
+  m = n `mod` (2 ^ (128 :: Int))
+
+lifecycleTag :: Lifecycle -> Word8
+lifecycleTag Init = 0
+lifecycleTag OnConnect = 1
+lifecycleTag OnDisconnect = 2
 
 tableTypeTag :: TableType -> Word8
 tableTypeTag SystemTable = 0
