@@ -18,6 +18,7 @@ import qualified SpacetimeDB.Protocol.RowListSpec
 import qualified SpacetimeDB.Server.DispatchSpec
 import qualified SpacetimeDB.Server.SchemaSpec
 import qualified SpacetimeDB.Server.SpacetimeTypeSpec
+import qualified SpacetimeDB.Server.TableSpec
 import System.Environment (lookupEnv)
 import Test.Hspec (Spec, describe, hspec)
 
@@ -49,3 +50,4 @@ hermetic = do
   describe "SpacetimeDB.Server.Dispatch" SpacetimeDB.Server.DispatchSpec.spec
   describe "SpacetimeDB.Server.Schema" SpacetimeDB.Server.SchemaSpec.spec
   describe "SpacetimeDB.Server.SpacetimeType" SpacetimeDB.Server.SpacetimeTypeSpec.spec
+  describe "SpacetimeDB.Server.Table" SpacetimeDB.Server.TableSpec.spec

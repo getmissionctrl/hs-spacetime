@@ -69,6 +69,12 @@ instance Monad ReducerM where
 backendOp :: (Backend -> IO (Either Text a)) -> ReducerM a
 backendOp f = ReducerM $ \_ b -> f b
 
+{- | Run a reducer action against a context and backend. Used by the dispatch
+layer and by tests injecting a fake 'Backend'.
+-}
+runReducerM :: ReducerM a -> ReducerContext -> Backend -> IO (Either Text a)
+runReducerM (ReducerM f) = f
+
 data Reducer = forall a. Reducer (Decoder a) (a -> ReducerM ())
 
 data ModuleDef = ModuleDef
