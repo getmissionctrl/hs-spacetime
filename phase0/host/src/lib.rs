@@ -13,6 +13,10 @@ pub struct HostState {
     pub sources: std::collections::HashMap<u32, Vec<u8>>,
     /// Collected sink bytes by handle id.
     pub sinks: std::collections::HashMap<u32, Vec<u8>>,
+    /// Open row iterators by id: the rows still to be yielded.
+    pub iters: std::collections::HashMap<u32, Vec<Vec<u8>>>,
+    /// Next row-iterator id to hand out (1-based; 0 reserved).
+    pub next_iter: u32,
 }
 
 impl HostState {
@@ -24,6 +28,8 @@ impl HostState {
             wasi: None,
             sources: std::collections::HashMap::new(),
             sinks: std::collections::HashMap::new(),
+            iters: std::collections::HashMap::new(),
+            next_iter: 1,
         }
     }
 }
@@ -104,6 +110,23 @@ impl Host {
             &mut self.store, "__call_reducer__")?;
         let errno = f.call(&mut self.store,
             (id as i32, 0, 0, 0, 0, 0, 0, 0, args_source as i32, error_sink as i32))?;
+        let err = self.store.data().sinks.get(&error_sink).cloned().unwrap_or_default();
+        Ok((errno, err))
+    }
+
+    /// Like `call_reducer`, but threads a non-zero timestamp (micros) through the
+    /// context so reducers that read `ctx.timestamp` can be exercised. Sender and
+    /// connection id are left zero.
+    pub fn call_reducer_ts(&mut self, instance: &Instance, id: u32, ts: u64, args: Vec<u8>) -> Result<(i32, Vec<u8>)> {
+        let args_source: u32 = 2;
+        let error_sink: u32 = 3;
+        self.store.data_mut().sources.insert(args_source, args);
+        self.store.data_mut().sinks.insert(error_sink, Vec::new());
+        let f = instance.get_typed_func::<
+            (i32, i64, i64, i64, i64, i64, i64, i64, i32, i32), i32>(
+            &mut self.store, "__call_reducer__")?;
+        let errno = f.call(&mut self.store,
+            (id as i32, 0, 0, 0, 0, 0, 0, ts as i64, args_source as i32, error_sink as i32))?;
         let err = self.store.data().sinks.get(&error_sink).cloned().unwrap_or_default();
         Ok((errno, err))
     }
@@ -217,6 +240,62 @@ impl Host {
             mem.read(&caller, buf_ptr as usize, &mut buf).unwrap();
             caller.data_mut().sinks.entry(sink as u32).or_default().extend_from_slice(&buf);
             0 // accept all; never signal NO_SPACE in Phase 0
+        })?;
+
+        // datastore_table_scan_bsatn(table_id, out_iter_ptr) -> u16 errno
+        //   Snapshot the table's currently-inserted rows into a fresh iterator.
+        self.linker.func_wrap("spacetime_10.0", "datastore_table_scan_bsatn", |mut caller: Caller<'_, HostState>,
+            table_id: i32, out: i32| -> i32 {
+            let mem = caller.get_export("memory").unwrap().into_memory().unwrap();
+            let rows = caller.data().inserted.get(&(table_id as u32)).cloned().unwrap_or_default();
+            let id = { let s = caller.data_mut(); let i = s.next_iter; s.next_iter += 1; s.iters.insert(i, rows); i };
+            mem.write(&mut caller, out as usize, &id.to_le_bytes()).unwrap();
+            0
+        })?;
+
+        // row_iter_bsatn_advance(iter, buf, buf_len_ptr) -> i16
+        //   Yields one row per call; returns -1 TOGETHER with the final row (or on
+        //   an already-empty iterator), 0 while more rows remain. The module must
+        //   harvest the bytes on the -1 call.
+        self.linker.func_wrap("spacetime_10.0", "row_iter_bsatn_advance", |mut caller: Caller<'_, HostState>,
+            iter: i32, buf: i32, buf_len_ptr: i32| -> i32 {
+            let mem = caller.get_export("memory").unwrap().into_memory().unwrap();
+            let mut remaining = caller.data().iters.get(&(iter as u32)).cloned().unwrap_or_default();
+            if remaining.is_empty() {
+                mem.write(&mut caller, buf_len_ptr as usize, &0u32.to_le_bytes()).unwrap();
+                return -1;
+            }
+            let row = remaining.remove(0);
+            mem.write(&mut caller, buf as usize, &row).unwrap();
+            mem.write(&mut caller, buf_len_ptr as usize, &(row.len() as u32).to_le_bytes()).unwrap();
+            let done = remaining.is_empty();
+            caller.data_mut().iters.insert(iter as u32, remaining);
+            if done { -1 } else { 0 }
+        })?;
+
+        // row_iter_bsatn_close(iter) -> u16 errno
+        self.linker.func_wrap("spacetime_10.0", "row_iter_bsatn_close", |mut caller: Caller<'_, HostState>, iter: i32| -> i32 {
+            caller.data_mut().iters.remove(&(iter as u32));
+            0
+        })?;
+
+        // datastore_delete_all_by_eq_bsatn(table_id, rel_ptr, rel_len, out_count_ptr) -> u16 errno
+        //   Delete every row whose bytes equal the given needle; report the count.
+        self.linker.func_wrap("spacetime_10.0", "datastore_delete_all_by_eq_bsatn", |mut caller: Caller<'_, HostState>,
+            table_id: i32, rel: i32, rel_len: i32, out: i32| -> i32 {
+            let mem = caller.get_export("memory").unwrap().into_memory().unwrap();
+            let mut needle = vec![0u8; rel_len as usize];
+            mem.read(&caller, rel as usize, &mut needle).unwrap();
+            let before;
+            let after;
+            {
+                let rows = caller.data_mut().inserted.entry(table_id as u32).or_default();
+                before = rows.len();
+                rows.retain(|r| r != &needle);
+                after = rows.len();
+            }
+            mem.write(&mut caller, out as usize, &((before - after) as u32).to_le_bytes()).unwrap();
+            0
         })?;
 
         Ok(())
