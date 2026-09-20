@@ -8,14 +8,20 @@ build-type:         Simple
 common warnings
   ghc-options: -Wall
 
+library bsatn
+  import:           warnings
+  hs-source-dirs:   bsatn/src
+  default-language: Haskell2010
+  exposed-modules:  SpacetimeDB.BSATN.Decoder
+                    SpacetimeDB.BSATN.Encoder
+                    SpacetimeDB.BSATN.Types
+  build-depends:    base >=4.14 && <5, bytestring, text, wide-word
+
 library
   import:           warnings
   hs-source-dirs:   src
   default-language: Haskell2010
   exposed-modules:  SpacetimeDB
-                    SpacetimeDB.BSATN.Decoder
-                    SpacetimeDB.BSATN.Encoder
-                    SpacetimeDB.BSATN.Types
                     SpacetimeDB.Protocol.RowList
                     SpacetimeDB.Protocol.Messages
                     SpacetimeDB.Protocol.Frame
@@ -27,7 +33,11 @@ library
                     SpacetimeDB.Client
                     SpacetimeDB.Codegen.Schema
                     SpacetimeDB.Codegen
+  reexported-modules: SpacetimeDB.BSATN.Decoder
+                    , SpacetimeDB.BSATN.Encoder
+                    , SpacetimeDB.BSATN.Types
   build-depends:    base >=4.14 && <5
+                  , bsatn
                   , bytestring
                   , text
                   , containers
