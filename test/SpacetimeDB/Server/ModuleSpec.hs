@@ -1,6 +1,7 @@
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NoFieldSelectors #-}
 
@@ -9,10 +10,18 @@ module SpacetimeDB.Server.ModuleSpec (spec) where
 import qualified Data.ByteString as BS
 import Data.Int (Int64)
 import Data.Text (Text)
-import Data.Word (Word32)
+import Data.Word (Word32, Word64)
 import GHC.Generics (Generic)
 import SpacetimeDB.Server (ModuleDef, describeBytes)
-import SpacetimeDB.Server.Module (defineModule, reducerReg, tableReg)
+import SpacetimeDB.Server.Module
+  ( ColumnAttr (..)
+  , Lifecycle (..)
+  , defineModule
+  , lifecycleReg
+  , reducerReg
+  , tableReg
+  , tableWith
+  )
 import SpacetimeDB.Server.SpacetimeType (SpacetimeType)
 import SpacetimeDB.Server.Table (Table, table)
 import Test.Hspec
@@ -44,8 +53,32 @@ theModule =
     , reducerReg "record_n" (\(RecordNArgs _) -> pure ())
     ]
 
+-- A table with a primary key + auto-inc column, and a lifecycle reducer.
+data Widget = Widget {id :: Word64, name :: Text, quantity :: Word32}
+  deriving stock (Generic)
+  deriving anyclass (SpacetimeType)
+
+data AddWidgetArgs = AddWidgetArgs {name :: Text, quantity :: Word32}
+  deriving stock (Generic)
+  deriving anyclass (SpacetimeType)
+
+widgetTable :: Table Widget
+widgetTable = table "widget"
+
+widgetModule :: ModuleDef
+widgetModule =
+  defineModule
+    [tableWith widgetTable [PrimaryKey "id", AutoInc "id"]]
+    [ reducerReg "add_widget" (\(AddWidgetArgs _ _) -> pure ())
+    , lifecycleReg Init "init" (\() -> pure ())
+    ]
+
 spec :: Spec
-spec = describe "Server.Module" $
+spec = describe "Server.Module" $ do
   it "defineModule emits schema bytes byte-identical to the Rust event golden" $ do
     golden <- BS.readFile "phase1/golden/event.schema.bsatn"
     describeBytes theModule `shouldBe` golden
+
+  it "defineModule with PK/auto-inc/lifecycle matches the Rust widget golden" $ do
+    golden <- BS.readFile "phase2/golden/widget.schema.bsatn"
+    describeBytes widgetModule `shouldBe` golden
