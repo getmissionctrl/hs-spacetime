@@ -55,6 +55,13 @@ class SpacetimeType a where
   decodeVal = to <$> gDecode
 
 -- Leaf (primitive) instances: map directly onto the bsatn combinators.
+
+-- | The empty product — used for no-argument reducers.
+instance SpacetimeType () where
+  algebraicType = TProduct []
+  encodeVal _ = mempty
+  decodeVal = pure ()
+
 instance SpacetimeType Bool where
   algebraicType = TBool
   encodeVal = encodeBool
