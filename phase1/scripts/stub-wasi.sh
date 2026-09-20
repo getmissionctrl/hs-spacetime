@@ -26,7 +26,7 @@ set -euo pipefail
 root="$(cd "$(dirname "$0")/../.." && pwd)"
 mod="$root/server/example"
 src="${1:-$mod/person-module.wasm}"
-out="$mod/person-module.nowasi.wasm"
+out="${src%.wasm}.nowasi.wasm"
 
 wizened="$(mktemp --suffix=.wasm)"
 stubs="$(mktemp --suffix=.wasm)"
