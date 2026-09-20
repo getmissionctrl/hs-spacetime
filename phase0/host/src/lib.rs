@@ -65,6 +65,41 @@ impl Host {
         Ok(instance)
     }
 
+    /// Call __describe_module__(sink) and return the bytes written to the sink.
+    pub fn describe(&mut self, instance: &Instance) -> Result<Vec<u8>> {
+        let sink_id: u32 = 1;
+        self.store.data_mut().sinks.insert(sink_id, Vec::new());
+        let f = instance
+            .get_typed_func::<i32, ()>(&mut self.store, "__describe_module__")?;
+        f.call(&mut self.store, sink_id as i32)?;
+        Ok(self.store.data().sinks.get(&sink_id).cloned().unwrap_or_default())
+    }
+
+    /// Call __call_reducer__ with the given args bytes fed via a source.
+    /// Returns (errno, error_sink_bytes).
+    pub fn call_reducer(&mut self, instance: &Instance, id: u32, args: Vec<u8>) -> Result<(i32, Vec<u8>)> {
+        let args_source: u32 = 2;
+        let error_sink: u32 = 3;
+        self.store.data_mut().sources.insert(args_source, args);
+        self.store.data_mut().sinks.insert(error_sink, Vec::new());
+        // Signature: (id:i32, sender0..3:i64, conn0,1:i64, ts:i64, args:i32, error:i32) -> i32
+        let f = instance.get_typed_func::<
+            (i32, i64, i64, i64, i64, i64, i64, i64, i32, i32), i32>(
+            &mut self.store, "__call_reducer__")?;
+        let errno = f.call(&mut self.store,
+            (id as i32, 0, 0, 0, 0, 0, 0, 0, args_source as i32, error_sink as i32))?;
+        let err = self.store.data().sinks.get(&error_sink).cloned().unwrap_or_default();
+        Ok((errno, err))
+    }
+
+    /// Optional reactor init.
+    pub fn initialize(&mut self, instance: &Instance) -> Result<()> {
+        if let Ok(f) = instance.get_typed_func::<(), ()>(&mut self.store, "_initialize") {
+            f.call(&mut self.store, ())?;
+        }
+        Ok(())
+    }
+
     /// Wire the `spacetime_10.0` host-function stubs into the linker.
     ///
     /// This subset covers logging, table-id lookup, row insertion, and the

@@ -25,3 +25,13 @@ fn stubs_capture_log_and_insert() {
     assert_eq!(host.store.data().logs, vec!["hi".to_string()]);
     assert_eq!(host.store.data().inserted.get(&7).unwrap(), &vec![b"AAA".to_vec()]);
 }
+
+#[test]
+fn describe_driver_collects_sink_bytes() {
+    let wasm = wat_to_wasm("tests/wat/describe.wat");
+    let mut host = Host::new(false).unwrap();
+    host.add_spacetime_stubs().unwrap();
+    let instance = host.instantiate(&wasm).unwrap();
+    let bytes = host.describe(&instance).unwrap();
+    assert_eq!(bytes, vec![0xde, 0xad, 0xbe, 0xef]);
+}
