@@ -16,8 +16,10 @@ import SpacetimeDB.Server (ModuleDef, describeBytes)
 import SpacetimeDB.Server.Module
   ( ColumnAttr (..)
   , Lifecycle (..)
+  , Reducer
   , defineModule
   , lifecycleReg
+  , reducer
   , reducerReg
   , tableReg
   , tableWith
@@ -42,15 +44,24 @@ newtype RecordNArgs = RecordNArgs {count :: Word32}
 eventTable :: Table Event
 eventTable = table "event"
 
+deleteAll :: Reducer ()
+deleteAll = reducer "delete_all"
+
+record :: Reducer RecordArgs
+record = reducer "record"
+
+recordN :: Reducer RecordNArgs
+recordN = reducer "record_n"
+
 -- The whole @event@ module authored entirely in Haskell types (handlers are
 -- stubs here; reducer behaviour is covered by DispatchSpec/TableSpec).
 theModule :: ModuleDef
 theModule =
   defineModule
     [tableReg eventTable]
-    [ reducerReg "delete_all" (\() -> pure ())
-    , reducerReg "record" (\(RecordArgs _) -> pure ())
-    , reducerReg "record_n" (\(RecordNArgs _) -> pure ())
+    [ reducerReg deleteAll (\() -> pure ())
+    , reducerReg record (\(RecordArgs _) -> pure ())
+    , reducerReg recordN (\(RecordNArgs _) -> pure ())
     ]
 
 -- A table with a primary key + auto-inc column, and a lifecycle reducer.
@@ -65,12 +76,18 @@ data AddWidgetArgs = AddWidgetArgs {name :: Text, quantity :: Word32}
 widgetTable :: Table Widget
 widgetTable = table "widget"
 
+addWidget :: Reducer AddWidgetArgs
+addWidget = reducer "add_widget"
+
+initR :: Reducer ()
+initR = reducer "init"
+
 widgetModule :: ModuleDef
 widgetModule =
   defineModule
     [tableWith widgetTable [PrimaryKey "id", AutoInc "id"]]
-    [ reducerReg "add_widget" (\(AddWidgetArgs _ _) -> pure ())
-    , lifecycleReg Init "init" (\() -> pure ())
+    [ reducerReg addWidget (\(AddWidgetArgs _ _) -> pure ())
+    , lifecycleReg Init initR (\() -> pure ())
     ]
 
 spec :: Spec

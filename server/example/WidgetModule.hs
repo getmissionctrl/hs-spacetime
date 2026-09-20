@@ -20,8 +20,10 @@ import SpacetimeDB.Server.ABI (runCallReducer, runDescribe)
 import SpacetimeDB.Server.Module
   ( ColumnAttr (..)
   , Lifecycle (..)
+  , Reducer
   , defineModule
   , lifecycleReg
+  , reducer
   , reducerReg
   , tableWith
   )
@@ -39,13 +41,19 @@ data AddWidgetArgs = AddWidgetArgs {name :: Text, quantity :: Word32}
 widgetTable :: Table Widget
 widgetTable = table "widget"
 
+addWidget :: Reducer AddWidgetArgs
+addWidget = reducer "add_widget"
+
+initR :: Reducer ()
+initR = reducer "init"
+
 -- Insert with id = 0: the auto-inc sequence assigns the real id on the host.
 theModule :: ModuleDef
 theModule =
   defineModule
     [tableWith widgetTable [PrimaryKey "id", AutoInc "id"]]
-    [ reducerReg "add_widget" $ \(AddWidgetArgs n q) -> insertRow widgetTable (Widget 0 n q)
-    , lifecycleReg Init "init" $ \() -> insertRow widgetTable (Widget 0 "seed" 1)
+    [ reducerReg addWidget $ \(AddWidgetArgs n q) -> insertRow widgetTable (Widget 0 n q)
+    , lifecycleReg Init initR $ \() -> insertRow widgetTable (Widget 0 "seed" 1)
     ]
 
 foreign export ccall hs_describe :: Word32 -> IO ()

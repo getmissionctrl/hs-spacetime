@@ -19,7 +19,7 @@ import GHC.Generics (Generic)
 import SpacetimeDB.BSATN.Types (Timestamp (..))
 import SpacetimeDB.Server
 import SpacetimeDB.Server.ABI (runCallReducer, runDescribe)
-import SpacetimeDB.Server.Module (defineModule, reducerReg, tableReg)
+import SpacetimeDB.Server.Module (Reducer, defineModule, reducer, reducerReg, tableReg)
 import SpacetimeDB.Server.SpacetimeType (SpacetimeType)
 import SpacetimeDB.Server.Table (Table, deleteRow, insertRow, scanRows, table)
 
@@ -40,6 +40,16 @@ newtype RecordNArgs = RecordNArgs {count :: Word32}
 eventTable :: Table Event
 eventTable = table "event"
 
+-- Type-safe reducer handles (name + argument type), declared once.
+deleteAll :: Reducer ()
+deleteAll = reducer "delete_all"
+
+record :: Reducer RecordArgs
+record = reducer "record"
+
+recordN :: Reducer RecordNArgs
+recordN = reducer "record_n"
+
 {- | Reducers listed in the schema's (alphabetical) order: delete_all, record,
 record_n. 'defineModule' matches dispatch ids to this order.
 -}
@@ -47,14 +57,14 @@ theModule :: ModuleDef
 theModule =
   defineModule
     [tableReg eventTable]
-    [ reducerReg "delete_all" $ \() -> do
+    [ reducerReg deleteAll $ \() -> do
         rows <- scanRows eventTable
         mapM_ (deleteRow eventTable) rows
-    , reducerReg "record" $ \(RecordArgs n) -> do
+    , reducerReg record $ \(RecordArgs n) -> do
         ctx <- ask
         let Timestamp micros = ctx.timestamp
         insertRow eventTable (Event n micros)
-    , reducerReg "record_n" $ \(RecordNArgs c) ->
+    , reducerReg recordN $ \(RecordNArgs c) ->
         if c == 0
           then throwError "count must be positive"
           else insertRow eventTable (Event "n" (fromIntegral c))

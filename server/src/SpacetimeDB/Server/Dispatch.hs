@@ -48,7 +48,7 @@ dispatchReducer :: ModuleDef -> Int -> ReducerContext -> ByteString -> Backend -
 dispatchReducer md rid ctx args be =
   case drop rid md.reducers of
     [] -> pure (Left ("unknown reducer id " <> T.pack (show rid)))
-    (Reducer dec h : _) -> case runExact dec args of
+    (BoundReducer dec h : _) -> case runExact dec args of
       Left err -> pure (Left ("arg decode failed: " <> T.pack (show err)))
       Right a -> (h a).unReducerM ctx be
 

@@ -75,10 +75,13 @@ layer and by tests injecting a fake 'Backend'.
 runReducerM :: ReducerM a -> ReducerContext -> Backend -> IO (Either Text a)
 runReducerM (ReducerM f) = f
 
-data Reducer = forall a. Reducer (Decoder a) (a -> ReducerM ())
+{- | A reducer bound for dispatch: an argument decoder plus its handler. (The
+public, type-safe reducer /handle/ is 'SpacetimeDB.Server.Reducer.Reducer'.)
+-}
+data BoundReducer = forall a. BoundReducer (Decoder a) (a -> ReducerM ())
 
 data ModuleDef = ModuleDef
   { schemaBytes :: !ByteString
-  , reducers :: ![Reducer]
+  , reducers :: ![BoundReducer]
   }
   deriving stock (Generic)

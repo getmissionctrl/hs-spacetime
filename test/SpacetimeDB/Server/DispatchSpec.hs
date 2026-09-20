@@ -30,10 +30,10 @@ testModule :: ModuleDef
 testModule =
   ModuleDef
     "SCHEMA"
-    [ reducer string $ \name -> do
+    [ boundReducer string $ \name -> do
         t <- tableId "person"
         insert t (runEncoder encodeString name)
-    , reducer u32 $ \n ->
+    , boundReducer u32 $ \n ->
         if n == 0
           then throwError "must be positive"
           else pure ()

@@ -3,8 +3,8 @@
 
 module SpacetimeDB.Server.Types
   ( ModuleDef (..)
-  , Reducer
-  , reducer
+  , BoundReducer
+  , boundReducer
   , ReducerContext (..)
   , ReducerM
   , TableId
@@ -24,9 +24,11 @@ import qualified Data.Text as T
 import SpacetimeDB.BSATN.Decoder (Decoder, runDecoder)
 import SpacetimeDB.Server.Internal
 
--- | Build a reducer from an argument decoder and a handler.
-reducer :: Decoder a -> (a -> ReducerM ()) -> Reducer
-reducer = Reducer
+{- | Build a low-level bound reducer from an argument decoder and a handler.
+(The type-safe reducer handle lives in "SpacetimeDB.Server.Reducer".)
+-}
+boundReducer :: Decoder a -> (a -> ReducerM ()) -> BoundReducer
+boundReducer = BoundReducer
 
 ask :: ReducerM ReducerContext
 ask = ReducerM $ \c _ -> pure (Right c)

@@ -34,6 +34,9 @@ module SpacetimeDB.Server.Module
   , reducerReg
   , lifecycleReg
   , Lifecycle (..)
+  , Reducer
+  , reducer
+  , reducerName
   , defineModule
   ) where
 
@@ -45,7 +48,8 @@ import qualified Data.Text as T
 import Data.Typeable (Typeable, tyConName, typeRep, typeRepTyCon)
 import Data.Word (Word16)
 import SpacetimeDB.BSATN.Decoder (Decoder)
-import SpacetimeDB.Server.Internal (ModuleDef (..), Reducer (..), ReducerM)
+import SpacetimeDB.Server.Internal (BoundReducer (..), ModuleDef (..), ReducerM)
+import SpacetimeDB.Server.Reducer (Reducer, reducer, reducerName)
 import SpacetimeDB.Server.Schema
 import SpacetimeDB.Server.SpacetimeType (SpacetimeType (..))
 import SpacetimeDB.Server.Table (Table, tableName)
@@ -74,13 +78,13 @@ tableReg t = TableReg t []
 tableWith :: (SpacetimeType row, Typeable row) => Table row -> [ColumnAttr] -> TableReg
 tableWith = TableReg
 
--- | Register a client-callable reducer.
-reducerReg :: (SpacetimeType args) => Text -> (args -> ReducerM ()) -> ReducerReg
-reducerReg nm = ReducerReg nm Nothing
+-- | Register a client-callable reducer from its typed handle.
+reducerReg :: (SpacetimeType args) => Reducer args -> (args -> ReducerM ()) -> ReducerReg
+reducerReg red = ReducerReg (reducerName red) Nothing
 
 -- | Register a lifecycle reducer (Init / OnConnect / OnDisconnect).
-lifecycleReg :: (SpacetimeType args) => Lifecycle -> Text -> (args -> ReducerM ()) -> ReducerReg
-lifecycleReg lc nm = ReducerReg nm (Just lc)
+lifecycleReg :: (SpacetimeType args) => Lifecycle -> Reducer args -> (args -> ReducerM ()) -> ReducerReg
+lifecycleReg lc red = ReducerReg (reducerName red) (Just lc)
 
 -- | Build a module: derive schema bytes + the ordered dispatch list.
 defineModule :: [TableReg] -> [ReducerReg] -> ModuleDef
@@ -136,7 +140,7 @@ defineModule tbls rdcrs =
           }
   reducerSchema (ReducerReg nm lc h) =
     ReducerSchema {name = nm, params = paramFields (handlerArgType h), lifecycle = lc}
-  toReducer (ReducerReg _ _ h) = Reducer (handlerDecoder h) h
+  toReducer (ReducerReg _ _ h) = BoundReducer (handlerDecoder h) h
 
 -- Recover per-type info from the (phantom/argument) type of an existential field.
 rowAlgType :: forall row. (SpacetimeType row) => Table row -> AlgType
