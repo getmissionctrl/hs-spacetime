@@ -179,7 +179,13 @@ impl Host {
         })?;
 
         // bytes_source_read(source, buf_ptr, buf_len_ptr) -> i16
-        //   0 = wrote some/all, -1 = exhausted, positive = errno (BUFFER_TOO_SMALL=11)
+        //   Mirrors the real SpacetimeDB host (crates/core/.../wasm_instance_env.rs):
+        //   copy up to `cap` bytes into `buf`, ALWAYS write the count read back to
+        //   `buf_len_ptr` (including 0), then return -1 iff the source is now
+        //   exhausted (the -1 accompanies the final chunk), else 0. The real host
+        //   also frees an exhausted source; we emulate that by clearing it. It is
+        //   critical this returns -1 TOGETHER with the last bytes, not on a
+        //   separate empty call — a module must harvest the bytes on the -1 call.
         self.linker.func_wrap("spacetime_10.0", "bytes_source_read", |mut caller: Caller<'_, HostState>,
             source: i32, buf_ptr: i32, buf_len_ptr: i32| -> i32 {
             let mem = caller.get_export("memory").unwrap().into_memory().unwrap();
@@ -187,12 +193,16 @@ impl Host {
             mem.read(&caller, buf_len_ptr as usize, &mut capb).unwrap();
             let cap = u32::from_le_bytes(capb) as usize;
             let remaining = caller.data().sources.get(&(source as u32)).cloned().unwrap_or_default();
-            if remaining.is_empty() { return -1; }
             let n = remaining.len().min(cap);
-            mem.write(&mut caller, buf_ptr as usize, &remaining[..n]).unwrap();
+            if n > 0 {
+                mem.write(&mut caller, buf_ptr as usize, &remaining[..n]).unwrap();
+            }
+            // Always report how many bytes were written (even 0).
             mem.write(&mut caller, buf_len_ptr as usize, &(n as u32).to_le_bytes()).unwrap();
-            caller.data_mut().sources.insert(source as u32, remaining[n..].to_vec());
-            0
+            let rest = remaining[n..].to_vec();
+            let exhausted = rest.is_empty();
+            caller.data_mut().sources.insert(source as u32, rest);
+            if exhausted { -1 } else { 0 }
         })?;
 
         // bytes_sink_write(sink, buf_ptr, buf_len_ptr) -> u16 errno

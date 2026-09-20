@@ -78,12 +78,17 @@ readSource src = go BS.empty
     go acc = allocaBytes cap $ \buf -> alloca $ \lenp -> do
       poke lenp (fromIntegral cap)
       rc <- c_source_read src buf lenp
-      if rc == (-1)
-        then pure acc
-        else do
-          n <- peek lenp
-          chunk <- BS.packCStringLen (castPtr buf, fromIntegral n)
-          if fromIntegral n < cap then pure (acc <> chunk) else go (acc <> chunk)
+      -- The host writes the bytes read into `buf` and updates `lenp` to the
+      -- count BEFORE returning its status, INCLUDING on the final read that
+      -- exhausts the source (rc == -1). So we must always harvest the `n`
+      -- bytes written this call, then stop iff rc == -1. (An earlier version
+      -- discarded the bytes on rc == -1, which worked only against a hermetic
+      -- host that returned -1 solely on an already-empty source — the real
+      -- SpacetimeDB host returns -1 together with the last chunk.)
+      n <- peek lenp
+      chunk <- BS.packCStringLen (castPtr buf, fromIntegral n)
+      let acc' = acc <> chunk
+      if rc == (-1) then pure acc' else go acc'
 
 writeSink :: Word32 -> ByteString -> IO ()
 writeSink sink payload =
