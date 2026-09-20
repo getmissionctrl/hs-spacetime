@@ -36,6 +36,7 @@ library
                     SpacetimeDB.Client.Dispatch
                     SpacetimeDB.Client.Connection
                     SpacetimeDB.Client
+                    SpacetimeDB.Client.Typed
                     SpacetimeDB.Codegen.Schema
                     SpacetimeDB.Codegen
   reexported-modules: SpacetimeDB.BSATN.Decoder
@@ -43,6 +44,7 @@ library
                     , SpacetimeDB.BSATN.Types
   build-depends:    base >=4.14 && <5
                   , bsatn
+                  , spacetime-server
                   , bytestring
                   , text
                   , containers
@@ -140,6 +142,7 @@ test-suite hs-spacetime-test
                     SpacetimeDB.Client.StateSpec
                     SpacetimeDB.Client.DispatchSpec
                     SpacetimeDB.Client.ConnectionSpec
+                    SpacetimeDB.Client.TypedSpec
                     SpacetimeDB.Server.DispatchSpec
                     SpacetimeDB.Server.SchemaSpec
                     SpacetimeDB.Server.SpacetimeTypeSpec

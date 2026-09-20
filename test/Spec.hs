@@ -5,6 +5,7 @@ import qualified SpacetimeDB.BSATN.EncoderSpec
 import qualified SpacetimeDB.BSATN.RoundtripSpec
 import qualified SpacetimeDB.BSATN.TypesSpec
 import qualified SpacetimeDB.Client.ConnectionSpec
+import qualified SpacetimeDB.Client.TypedSpec
 import qualified SpacetimeDB.Client.DispatchSpec
 import qualified SpacetimeDB.Client.EndpointSpec
 import qualified SpacetimeDB.Client.StateSpec
@@ -45,6 +46,7 @@ hermetic = do
   describe "SpacetimeDB.Client.State" SpacetimeDB.Client.StateSpec.spec
   describe "SpacetimeDB.Client.Dispatch" SpacetimeDB.Client.DispatchSpec.spec
   describe "SpacetimeDB.Client.Connection" SpacetimeDB.Client.ConnectionSpec.spec
+  describe "SpacetimeDB.Client.Typed" SpacetimeDB.Client.TypedSpec.spec
   describe "SpacetimeDB.Codegen.Schema" SpacetimeDB.Codegen.SchemaSpec.spec
   describe "SpacetimeDB.Codegen.Golden" SpacetimeDB.Codegen.GoldenSpec.spec
   describe "SpacetimeDB.Codegen.GeneratedRoundtrip" SpacetimeDB.Codegen.GeneratedRoundtripSpec.spec
