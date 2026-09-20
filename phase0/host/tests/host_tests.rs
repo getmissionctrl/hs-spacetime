@@ -37,6 +37,7 @@ fn describe_driver_collects_sink_bytes() {
 }
 
 const PERSON_WASM: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../module/person-module.wasm");
+const PERSON_NOWASI: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../module/person-module.nowasi.wasm");
 const GOLDEN: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../golden/person.schema.bsatn");
 
 fn bsatn_string(s: &str) -> Vec<u8> {
@@ -61,6 +62,21 @@ fn haskell_module_describes_and_inserts_over_wasi() {
     let (errno, err) = host.call_reducer(&instance, 0, bsatn_string("alice")).unwrap();
     assert_eq!(errno, 0, "reducer error: {}", String::from_utf8_lossy(&err));
     assert_eq!(host.store.data().inserted.get(&1).unwrap(), &vec![bsatn_string("alice")]);
+}
+
+#[test]
+fn stubbed_module_runs_with_wasi_off() {
+    let wasm = std::fs::read(PERSON_NOWASI).expect("run stub-wasi.sh first");
+    let mut host = Host::new(false).unwrap(); // WASI OFF — mimics real SpacetimeDB
+    host.add_spacetime_stubs().unwrap();
+    host.store.data_mut().table_ids.insert("person".into(), 1);
+    let instance = host.instantiate(&wasm).unwrap(); // must NOT fail on missing wasi imports
+    host.initialize(&instance).unwrap();
+    let schema = host.describe(&instance).unwrap();
+    assert_eq!(schema, std::fs::read(GOLDEN).unwrap());
+    let (errno, err) = host.call_reducer(&instance, 0, bsatn_string("bob")).unwrap();
+    assert_eq!(errno, 0, "reducer error: {}", String::from_utf8_lossy(&err));
+    assert_eq!(host.store.data().inserted.get(&1).unwrap(), &vec![bsatn_string("bob")]);
 }
 
 #[test]
