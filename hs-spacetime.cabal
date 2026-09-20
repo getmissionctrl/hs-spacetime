@@ -5,6 +5,11 @@ synopsis:           Native Haskell client SDK for SpacetimeDB (v2 protocol)
 license:            MIT
 build-type:         Simple
 
+flag wasm
+  description: Build the wasm-only server ABI module and example reactor.
+  default:     False
+  manual:      True
+
 common warnings
   ghc-options: -Wall
 
@@ -54,6 +59,19 @@ library
                   , vector
                   , unordered-containers
                   , case-insensitive
+
+library spacetime-server
+  import:           warnings
+  hs-source-dirs:   server/src
+  default-language: Haskell2010
+  exposed-modules:  SpacetimeDB.Server.Types
+  other-modules:    SpacetimeDB.Server.Internal
+  build-depends:    base >=4.14 && <5, bytestring, text, bsatn
+  if flag(wasm)
+    exposed-modules: SpacetimeDB.Server.ABI
+    c-sources:       server/cbits/spacetime_abi.c
+    include-dirs:    server/cbits
+    install-includes: spacetime_abi.h
 
 executable hs-spacetime-codegen
   import:           warnings
