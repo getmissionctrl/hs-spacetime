@@ -1,8 +1,8 @@
 use phase0_host::Host;
 
 fn wat_to_wasm(path: &str) -> Vec<u8> {
-    let text = std::fs::read_to_string(path).unwrap();
-    wat::parse_str(&text).unwrap()
+    let text = std::fs::read_to_string(path).expect(&format!("read WAT fixture {path}"));
+    wat::parse_str(&text).expect(&format!("parse WAT fixture {path}"))
 }
 
 #[test]
