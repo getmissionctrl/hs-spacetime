@@ -9,6 +9,10 @@ pub struct HostState {
     pub inserted: std::collections::HashMap<u32, Vec<Vec<u8>>>,
     pub table_ids: std::collections::HashMap<String, u32>,
     pub wasi: Option<WasiP1Ctx>,
+    /// Pending source bytes by handle id (1-based). 0 means "no source".
+    pub sources: std::collections::HashMap<u32, Vec<u8>>,
+    /// Collected sink bytes by handle id.
+    pub sinks: std::collections::HashMap<u32, Vec<u8>>,
 }
 
 impl HostState {
@@ -18,6 +22,8 @@ impl HostState {
             inserted: std::collections::HashMap::new(),
             table_ids: std::collections::HashMap::new(),
             wasi: None,
+            sources: std::collections::HashMap::new(),
+            sinks: std::collections::HashMap::new(),
         }
     }
 }
@@ -57,5 +63,81 @@ impl Host {
         let module = Module::new(&self.engine, wasm).context("compile module")?;
         let instance = self.linker.instantiate(&mut self.store, &module).context("instantiate module")?;
         Ok(instance)
+    }
+
+    /// Wire the `spacetime_10.0` host-function stubs into the linker.
+    ///
+    /// This subset covers logging, table-id lookup, row insertion, and the
+    /// bytes source/sink streams used by the reducer calling convention.
+    pub fn add_spacetime_stubs(&mut self) -> Result<()> {
+        use wasmtime::Caller;
+
+        // console_log(level, target, target_len, filename, filename_len, line, message_ptr, message_len)
+        self.linker.func_wrap("spacetime_10.0", "console_log", |mut caller: Caller<'_, HostState>,
+            _level: i32, _t: i32, _tl: i32, _f: i32, _fl: i32, _line: i32, msg: i32, msg_len: i32| {
+            let mem = caller.get_export("memory").unwrap().into_memory().unwrap();
+            let mut buf = vec![0u8; msg_len as usize];
+            mem.read(&caller, msg as usize, &mut buf).unwrap();
+            caller.data_mut().logs.push(String::from_utf8_lossy(&buf).into_owned());
+        })?;
+
+        // table_id_from_name(name_ptr, name_len, out_ptr) -> u16 errno
+        self.linker.func_wrap("spacetime_10.0", "table_id_from_name", |mut caller: Caller<'_, HostState>,
+            name: i32, name_len: i32, out: i32| -> i32 {
+            let mem = caller.get_export("memory").unwrap().into_memory().unwrap();
+            let mut buf = vec![0u8; name_len as usize];
+            mem.read(&caller, name as usize, &mut buf).unwrap();
+            let key = String::from_utf8_lossy(&buf).into_owned();
+            match caller.data().table_ids.get(&key).copied() {
+                Some(id) => { mem.write(&mut caller, out as usize, &id.to_le_bytes()).unwrap(); 0 }
+                None => 4, // NO_SUCH_TABLE
+            }
+        })?;
+
+        // datastore_insert_bsatn(table_id, row_ptr, row_len_ptr) -> u16 errno
+        self.linker.func_wrap("spacetime_10.0", "datastore_insert_bsatn", |mut caller: Caller<'_, HostState>,
+            table_id: i32, row_ptr: i32, row_len_ptr: i32| -> i32 {
+            let mem = caller.get_export("memory").unwrap().into_memory().unwrap();
+            let mut lenb = [0u8; 4];
+            mem.read(&caller, row_len_ptr as usize, &mut lenb).unwrap();
+            let len = u32::from_le_bytes(lenb) as usize;
+            let mut row = vec![0u8; len];
+            mem.read(&caller, row_ptr as usize, &mut row).unwrap();
+            caller.data_mut().inserted.entry(table_id as u32).or_default().push(row);
+            0
+        })?;
+
+        // bytes_source_read(source, buf_ptr, buf_len_ptr) -> i16
+        //   0 = wrote some/all, -1 = exhausted, positive = errno (BUFFER_TOO_SMALL=11)
+        self.linker.func_wrap("spacetime_10.0", "bytes_source_read", |mut caller: Caller<'_, HostState>,
+            source: i32, buf_ptr: i32, buf_len_ptr: i32| -> i32 {
+            let mem = caller.get_export("memory").unwrap().into_memory().unwrap();
+            let mut capb = [0u8; 4];
+            mem.read(&caller, buf_len_ptr as usize, &mut capb).unwrap();
+            let cap = u32::from_le_bytes(capb) as usize;
+            let remaining = caller.data().sources.get(&(source as u32)).cloned().unwrap_or_default();
+            if remaining.is_empty() { return -1; }
+            let n = remaining.len().min(cap);
+            mem.write(&mut caller, buf_ptr as usize, &remaining[..n]).unwrap();
+            mem.write(&mut caller, buf_len_ptr as usize, &(n as u32).to_le_bytes()).unwrap();
+            caller.data_mut().sources.insert(source as u32, remaining[n..].to_vec());
+            0
+        })?;
+
+        // bytes_sink_write(sink, buf_ptr, buf_len_ptr) -> u16 errno
+        //   Returns 0 = all bytes accepted; full NO_SPACE back-pressure is a Phase 1 concern.
+        self.linker.func_wrap("spacetime_10.0", "bytes_sink_write", |mut caller: Caller<'_, HostState>,
+            sink: i32, buf_ptr: i32, buf_len_ptr: i32| -> i32 {
+            let mem = caller.get_export("memory").unwrap().into_memory().unwrap();
+            let mut lenb = [0u8; 4];
+            mem.read(&caller, buf_len_ptr as usize, &mut lenb).unwrap();
+            let len = u32::from_le_bytes(lenb) as usize;
+            let mut buf = vec![0u8; len];
+            mem.read(&caller, buf_ptr as usize, &mut buf).unwrap();
+            caller.data_mut().sinks.entry(sink as u32).or_default().extend_from_slice(&buf);
+            0 // accept all; never signal NO_SPACE in Phase 0
+        })?;
+
+        Ok(())
     }
 }
