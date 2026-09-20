@@ -1,0 +1,10 @@
+# The wasm shell sets CC/CXX to the WASI SDK clang, which cannot compile
+# native C dependencies (zstd-sys, etc.) that wasmtime pulls in.
+# Override to the Nix-provided native gcc so cargo build works without
+# needing manual CC= prefixes on every invocation.
+# NOTE: this CC=gcc force is specific to the Nix wasm shell (`nix develop
+# .#wasm`). Remove or adjust this override when building outside that shell
+# (e.g. a plain `cargo build` on a non-Nix toolchain).
+[env]
+CC = { value = "gcc", force = true }
+CXX = { value = "g++", force = true }
