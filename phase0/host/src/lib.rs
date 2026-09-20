@@ -65,6 +65,18 @@ impl Host {
         Ok(instance)
     }
 
+    /// Like `instantiate`, but fills any imports not already in the linker with
+    /// trap stubs.  This lets a real SpacetimeDB module (which imports many more
+    /// host functions than our minimal stubs cover) instantiate without error.
+    /// The extra imports will trap if called, but `__describe_module__` only
+    /// calls `bytes_sink_write`, so they are never reached on the describe path.
+    pub fn instantiate_allowing_unknown(&mut self, wasm: &[u8]) -> Result<Instance> {
+        let module = Module::new(&self.engine, wasm).context("compile module")?;
+        self.linker.define_unknown_imports_as_traps(&module).context("define unknown imports as traps")?;
+        let instance = self.linker.instantiate(&mut self.store, &module).context("instantiate module (allowing unknown)")?;
+        Ok(instance)
+    }
+
     /// Call __describe_module__(sink) and return the bytes written to the sink.
     pub fn describe(&mut self, instance: &Instance) -> Result<Vec<u8>> {
         let sink_id: u32 = 1;
@@ -93,7 +105,27 @@ impl Host {
     }
 
     /// Optional reactor init.
+    ///
+    /// Calls all `__preinit__*` exports (sorted by name) before `_initialize`.
+    /// SpacetimeDB modules use `__preinit__20_register_describer_*` exports to
+    /// populate the static describer list used by `__describe_module__`.  If
+    /// these are not called, `__describe_module__` returns an empty module.
     pub fn initialize(&mut self, instance: &Instance) -> Result<()> {
+        // Collect __preinit__ export names first to avoid borrow conflicts.
+        let preinit_names: Vec<String> = instance
+            .exports(&mut self.store)
+            .filter_map(|e| {
+                let name = e.name().to_owned();
+                if name.starts_with("__preinit__") { Some(name) } else { None }
+            })
+            .collect();
+        // Sort lexicographically (the numeric prefix ensures correct order).
+        let mut sorted = preinit_names;
+        sorted.sort();
+        for name in sorted {
+            let f = instance.get_typed_func::<(), ()>(&mut self.store, &name)?;
+            f.call(&mut self.store, ())?;
+        }
         if let Ok(f) = instance.get_typed_func::<(), ()>(&mut self.store, "_initialize") {
             f.call(&mut self.store, ())?;
         }
