@@ -1,257 +1,63 @@
+{-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE ForeignFunctionInterface #-}
 {-# LANGUAGE OverloadedRecordDot #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE NoFieldSelectors #-}
 
+{- | Example reactor module authored entirely in Haskell types: the table is a
+record, the reducers are typed handlers, and the schema bytes are derived by
+'defineModule' (no embedded/captured bytes, no hand-written BSATN).
+-}
 module PersonModule where
 
-import Data.ByteString (ByteString)
-import qualified Data.ByteString as BS
-import qualified Data.ByteString.Builder as BB
-import qualified Data.ByteString.Lazy as BL
 import Data.Int (Int16, Int64)
 import Data.Text (Text)
-import qualified Data.Text.Encoding as TE
 import Data.Word (Word32, Word64)
-import SpacetimeDB.BSATN.Decoder (i64, string, success, u32)
+import GHC.Generics (Generic)
 import SpacetimeDB.BSATN.Types (Timestamp (..))
 import SpacetimeDB.Server
 import SpacetimeDB.Server.ABI (runCallReducer, runDescribe)
+import SpacetimeDB.Server.Module (defineModule, reducerReg, tableReg)
+import SpacetimeDB.Server.SpacetimeType (SpacetimeType)
+import SpacetimeDB.Server.Table (Table, deleteRow, insertRow, scanRows, table)
 
--- Reducer schema captured from the Rust 'event' fixture (196 bytes). The host
--- assigns reducer ids by this schema's (alphabetical) array order:
---   0 = delete_all, 1 = record, 2 = record_n
--- so 'theModule' below lists its reducers in that exact order.
-eventSchema :: ByteString
-eventSchema =
-  BS.pack
-    [ 2
-    , 5
-    , 0
-    , 0
-    , 0
-    , 3
-    , 3
-    , 0
-    , 0
-    , 0
-    , 10
-    , 0
-    , 0
-    , 0
-    , 100
-    , 101
-    , 108
-    , 101
-    , 116
-    , 101
-    , 95
-    , 97
-    , 108
-    , 108
-    , 0
-    , 0
-    , 0
-    , 0
-    , 1
-    , 2
-    , 0
-    , 0
-    , 0
-    , 0
-    , 4
-    , 6
-    , 0
-    , 0
-    , 0
-    , 114
-    , 101
-    , 99
-    , 111
-    , 114
-    , 100
-    , 1
-    , 0
-    , 0
-    , 0
-    , 0
-    , 4
-    , 0
-    , 0
-    , 0
-    , 110
-    , 111
-    , 116
-    , 101
-    , 4
-    , 1
-    , 2
-    , 0
-    , 0
-    , 0
-    , 0
-    , 4
-    , 8
-    , 0
-    , 0
-    , 0
-    , 114
-    , 101
-    , 99
-    , 111
-    , 114
-    , 100
-    , 95
-    , 110
-    , 1
-    , 0
-    , 0
-    , 0
-    , 0
-    , 5
-    , 0
-    , 0
-    , 0
-    , 99
-    , 111
-    , 117
-    , 110
-    , 116
-    , 11
-    , 1
-    , 2
-    , 0
-    , 0
-    , 0
-    , 0
-    , 4
-    , 10
-    , 0
-    , 0
-    , 0
-    , 0
-    , 0
-    , 1
-    , 0
-    , 0
-    , 0
-    , 2
-    , 2
-    , 0
-    , 0
-    , 0
-    , 0
-    , 3
-    , 0
-    , 0
-    , 0
-    , 119
-    , 104
-    , 111
-    , 4
-    , 0
-    , 2
-    , 0
-    , 0
-    , 0
-    , 97
-    , 116
-    , 12
-    , 1
-    , 1
-    , 0
-    , 0
-    , 0
-    , 0
-    , 0
-    , 0
-    , 0
-    , 5
-    , 0
-    , 0
-    , 0
-    , 69
-    , 118
-    , 101
-    , 110
-    , 116
-    , 0
-    , 0
-    , 0
-    , 0
-    , 1
-    , 2
-    , 1
-    , 0
-    , 0
-    , 0
-    , 5
-    , 0
-    , 0
-    , 0
-    , 101
-    , 118
-    , 101
-    , 110
-    , 116
-    , 0
-    , 0
-    , 0
-    , 0
-    , 0
-    , 0
-    , 0
-    , 0
-    , 0
-    , 0
-    , 0
-    , 0
-    , 0
-    , 0
-    , 0
-    , 0
-    , 0
-    , 0
-    , 0
-    , 0
-    , 1
-    , 0
-    , 0
-    , 0
-    , 0
-    , 0
-    , 0
-    ]
+-- The table row, as a plain record.
+data Event = Event {who :: Text, at :: Int64}
+  deriving stock (Generic)
+  deriving anyclass (SpacetimeType)
 
--- Encode an Event{who::Text, at::Int64} row as a BSATN product (bare concat).
-encodeEvent :: Text -> Int64 -> ByteString
-encodeEvent who at =
-  BL.toStrict . BB.toLazyByteString $
-    BB.word32LE (fromIntegral (BS.length (TE.encodeUtf8 who)))
-      <> BB.byteString (TE.encodeUtf8 who)
-      <> BB.int64LE at
+-- Reducer argument products, as plain records.
+newtype RecordArgs = RecordArgs {note :: Text}
+  deriving stock (Generic)
+  deriving anyclass (SpacetimeType)
 
+newtype RecordNArgs = RecordNArgs {count :: Word32}
+  deriving stock (Generic)
+  deriving anyclass (SpacetimeType)
+
+eventTable :: Table Event
+eventTable = table "event"
+
+{- | Reducers listed in the schema's (alphabetical) order: delete_all, record,
+record_n. 'defineModule' matches dispatch ids to this order.
+-}
 theModule :: ModuleDef
 theModule =
-  ModuleDef
-    eventSchema
-    [ reducer (success ()) $ \() -> do
-        -- reducer 0: delete_all()
-        t <- tableId "event"
-        -- The row decoder (who :: String, at :: i64) is used only to find each
-        -- row's byte boundary so we can delete it by its exact bytes.
-        rows <- scan (string *> i64) t
-        mapM_ (delete t) rows
-    , reducer string $ \note -> do
-        -- reducer 1: record(note)
+  defineModule
+    [tableReg eventTable]
+    [ reducerReg "delete_all" $ \() -> do
+        rows <- scanRows eventTable
+        mapM_ (deleteRow eventTable) rows
+    , reducerReg "record" $ \(RecordArgs n) -> do
         ctx <- ask
         let Timestamp micros = ctx.timestamp
-        t <- tableId "event"
-        insert t (encodeEvent note micros)
-    , reducer u32 $ \count -> do
-        -- reducer 2: record_n(count)
-        if count == 0
+        insertRow eventTable (Event n micros)
+    , reducerReg "record_n" $ \(RecordNArgs c) ->
+        if c == 0
           then throwError "count must be positive"
-          else do t <- tableId "event"; insert t (encodeEvent "n" (fromIntegral count))
+          else insertRow eventTable (Event "n" (fromIntegral c))
     ]
 
 foreign export ccall hs_describe :: Word32 -> IO ()
