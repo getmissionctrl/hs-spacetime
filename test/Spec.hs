@@ -17,6 +17,7 @@ import qualified SpacetimeDB.Protocol.MessagesSpec
 import qualified SpacetimeDB.Protocol.RowListSpec
 import qualified SpacetimeDB.Server.DispatchSpec
 import qualified SpacetimeDB.Server.SchemaSpec
+import qualified SpacetimeDB.Server.SpacetimeTypeSpec
 import System.Environment (lookupEnv)
 import Test.Hspec (Spec, describe, hspec)
 
@@ -47,3 +48,4 @@ hermetic = do
   describe "SpacetimeDB.Codegen.GeneratedRoundtrip" SpacetimeDB.Codegen.GeneratedRoundtripSpec.spec
   describe "SpacetimeDB.Server.Dispatch" SpacetimeDB.Server.DispatchSpec.spec
   describe "SpacetimeDB.Server.Schema" SpacetimeDB.Server.SchemaSpec.spec
+  describe "SpacetimeDB.Server.SpacetimeType" SpacetimeDB.Server.SpacetimeTypeSpec.spec
