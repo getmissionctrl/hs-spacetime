@@ -68,6 +68,7 @@ library spacetime-server
                     SpacetimeDB.Server.Types
                     SpacetimeDB.Server.Dispatch
                     SpacetimeDB.Server.Internal
+                    SpacetimeDB.Server.Schema
   build-depends:    base >=4.14 && <5, bytestring, text, bsatn
   if flag(wasm)
     exposed-modules: SpacetimeDB.Server.ABI
@@ -121,5 +122,6 @@ test-suite hs-spacetime-test
                     SpacetimeDB.Client.DispatchSpec
                     SpacetimeDB.Client.ConnectionSpec
                     SpacetimeDB.Server.DispatchSpec
+                    SpacetimeDB.Server.SchemaSpec
   build-depends:    base, hs-spacetime, spacetime-server, hspec, QuickCheck
                   , bytestring, text, containers, wide-word, zlib, stm, process
