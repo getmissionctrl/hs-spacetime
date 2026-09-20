@@ -57,6 +57,20 @@ fn delete_all_scans_and_deletes() {
 }
 
 #[test]
+fn delete_all_handles_row_larger_than_buffer() {
+    // A row bigger than the drain's initial 4096 buffer forces the iterator to
+    // return BUFFER_TOO_SMALL; the module must grow its buffer and retry, then
+    // split + delete the row.
+    let (mut host, inst) = fresh();
+    let big = "y".repeat(5000);
+    host.call_reducer_ts(&inst, R_RECORD, 1, bsatn_string(&big)).unwrap();
+    assert_eq!(host.store.data().inserted.get(&1).unwrap().len(), 1);
+    let (errno, err) = host.call_reducer_ts(&inst, R_DELETE_ALL, 0, vec![]).unwrap();
+    assert_eq!(errno, 0, "{}", String::from_utf8_lossy(&err));
+    assert_eq!(host.store.data().inserted.get(&1).map(|v| v.len()).unwrap_or(0), 0);
+}
+
+#[test]
 fn multi_chunk_args_over_4096() {
     let (mut host, inst) = fresh();
     let big = "x".repeat(5000);

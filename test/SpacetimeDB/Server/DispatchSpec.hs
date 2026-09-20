@@ -1,36 +1,43 @@
+{-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE OverloadedRecordDot #-}
 {-# LANGUAGE OverloadedStrings #-}
+
 module SpacetimeDB.Server.DispatchSpec (spec) where
 
-import Data.IORef
 import qualified Data.ByteString as BS
+import Data.IORef
 import qualified Data.Text as T
-import Test.Hspec
 import SpacetimeDB.BSATN.Decoder (string, u32)
 import SpacetimeDB.BSATN.Encoder (encodeString, runEncoder)
 import SpacetimeDB.BSATN.Types (ConnectionId, Timestamp (..), connectionIdFromInteger)
 import SpacetimeDB.Server
 import SpacetimeDB.Server.Internal (Backend (..), TableId (..))
+import Test.Hspec
 
 -- A fake backend that records inserts into an IORef.
 fakeBackend :: IORef [(TableId, BS.ByteString)] -> Backend
-fakeBackend ref = Backend
-  { beTableId = \_ -> pure (Right (TableId 1))
-  , beInsert  = \t row -> modifyIORef' ref (++ [(t, row)]) >> pure (Right ())
-  , beScan    = \_ -> pure (Right [])
-  , beDelete  = \_ _ -> pure (Right ())
-  , beLog     = \_ -> pure ()
-  }
+fakeBackend ref =
+  Backend
+    { tableId = \_ -> pure (Right (TableId 1))
+    , insert = \t row -> modifyIORef' ref (++ [(t, row)]) >> pure (Right ())
+    , scan = \_ -> pure (Right BS.empty)
+    , delete = \_ _ -> pure (Right ())
+    , log = \_ -> pure ()
+    }
 
 -- Module with two reducers of different arg types.
 testModule :: ModuleDef
-testModule = ModuleDef "SCHEMA"
-  [ reducer string $ \name -> do
-      t <- tableId "person"
-      insert t (runEncoder encodeString name)
-  , reducer u32 $ \n ->
-      if n == 0 then throwError "must be positive"
-                else pure ()
-  ]
+testModule =
+  ModuleDef
+    "SCHEMA"
+    [ reducer string $ \name -> do
+        t <- tableId "person"
+        insert t (runEncoder encodeString name)
+    , reducer u32 $ \n ->
+        if n == 0
+          then throwError "must be positive"
+          else pure ()
+    ]
 
 ctx0 :: ReducerContext
 ctx0 = mkContext 0 0 0 0 0 0 0
@@ -47,7 +54,7 @@ spec = describe "dispatch" $ do
 
   it "dispatches reducer 1 (u32) and throwError surfaces as Left" $ do
     ref <- newIORef []
-    r <- dispatchReducer testModule 1 ctx0 (BS.pack [0,0,0,0]) (fakeBackend ref)
+    r <- dispatchReducer testModule 1 ctx0 (BS.pack [0, 0, 0, 0]) (fakeBackend ref)
     r `shouldBe` Left "must be positive"
 
   it "unknown reducer id is Left, not a crash" $ do
@@ -57,10 +64,10 @@ spec = describe "dispatch" $ do
 
   it "arg decode failure is Left" $ do
     ref <- newIORef []
-    r <- dispatchReducer testModule 0 ctx0 (BS.pack [1,2]) (fakeBackend ref)  -- truncated string
+    r <- dispatchReducer testModule 0 ctx0 (BS.pack [1, 2]) (fakeBackend ref) -- truncated string
     case r of Left m -> ("arg decode failed:" `T.isPrefixOf` m) `shouldBe` True; _ -> expectationFailure "expected Left"
 
   it "mkContext maps a zero connection id to Nothing and non-zero to Just" $ do
-    connectionId (mkContext 0 0 0 0 0 0 5) `shouldBe` (Nothing :: Maybe ConnectionId)
-    connectionId (mkContext 0 0 0 0 7 0 5) `shouldBe` Just (connectionIdFromInteger 7)
-    timestamp (mkContext 0 0 0 0 0 0 42) `shouldBe` Timestamp 42
+    (mkContext 0 0 0 0 0 0 5).connectionId `shouldBe` (Nothing :: Maybe ConnectionId)
+    (mkContext 0 0 0 0 7 0 5).connectionId `shouldBe` Just (connectionIdFromInteger 7)
+    (mkContext 0 0 0 0 0 0 42).timestamp `shouldBe` Timestamp 42

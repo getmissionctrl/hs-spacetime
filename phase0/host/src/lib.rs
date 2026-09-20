@@ -118,9 +118,13 @@ impl Host {
     /// context so reducers that read `ctx.timestamp` can be exercised. Sender and
     /// connection id are left zero.
     pub fn call_reducer_ts(&mut self, instance: &Instance, id: u32, ts: u64, args: Vec<u8>) -> Result<(i32, Vec<u8>)> {
-        let args_source: u32 = 2;
         let error_sink: u32 = 3;
-        self.store.data_mut().sources.insert(args_source, args);
+        // Mirror the real host: a no-arg reducer is handed the INVALID source id 0
+        // (never registered), so reading it yields NO_SUCH_BYTES rather than -1.
+        let args_source: u32 = if args.is_empty() { 0 } else { 2 };
+        if args_source != 0 {
+            self.store.data_mut().sources.insert(args_source, args);
+        }
         self.store.data_mut().sinks.insert(error_sink, Vec::new());
         let f = instance.get_typed_func::<
             (i32, i64, i64, i64, i64, i64, i64, i64, i32, i32), i32>(
@@ -212,10 +216,19 @@ impl Host {
         self.linker.func_wrap("spacetime_10.0", "bytes_source_read", |mut caller: Caller<'_, HostState>,
             source: i32, buf_ptr: i32, buf_len_ptr: i32| -> i32 {
             let mem = caller.get_export("memory").unwrap().into_memory().unwrap();
+            // An absent source (e.g. the INVALID id 0 the real host passes for a
+            // no-arg reducer) is NO_SUCH_BYTES (8), a positive errno — NOT -1. A
+            // module that only stops on -1 would loop forever here.
+            let remaining = match caller.data().sources.get(&(source as u32)) {
+                Some(bytes) => bytes.clone(),
+                None => {
+                    mem.write(&mut caller, buf_len_ptr as usize, &0u32.to_le_bytes()).unwrap();
+                    return 8; // NO_SUCH_BYTES
+                }
+            };
             let mut capb = [0u8; 4];
             mem.read(&caller, buf_len_ptr as usize, &mut capb).unwrap();
             let cap = u32::from_le_bytes(capb) as usize;
-            let remaining = caller.data().sources.get(&(source as u32)).cloned().unwrap_or_default();
             let n = remaining.len().min(cap);
             if n > 0 {
                 mem.write(&mut caller, buf_ptr as usize, &remaining[..n]).unwrap();
@@ -256,7 +269,9 @@ impl Host {
         // row_iter_bsatn_advance(iter, buf, buf_len_ptr) -> i16
         //   Yields one row per call; returns -1 TOGETHER with the final row (or on
         //   an already-empty iterator), 0 while more rows remain. The module must
-        //   harvest the bytes on the -1 call.
+        //   harvest the bytes on the -1 call. If the next row does not fit in the
+        //   caller's buffer, returns BUFFER_TOO_SMALL (11) with buf_len set to the
+        //   size needed and nothing written, mirroring the real host.
         self.linker.func_wrap("spacetime_10.0", "row_iter_bsatn_advance", |mut caller: Caller<'_, HostState>,
             iter: i32, buf: i32, buf_len_ptr: i32| -> i32 {
             let mem = caller.get_export("memory").unwrap().into_memory().unwrap();
@@ -264,6 +279,14 @@ impl Host {
             if remaining.is_empty() {
                 mem.write(&mut caller, buf_len_ptr as usize, &0u32.to_le_bytes()).unwrap();
                 return -1;
+            }
+            let mut capb = [0u8; 4];
+            mem.read(&caller, buf_len_ptr as usize, &mut capb).unwrap();
+            let cap = u32::from_le_bytes(capb) as usize;
+            if remaining[0].len() > cap {
+                let need = remaining[0].len() as u32;
+                mem.write(&mut caller, buf_len_ptr as usize, &need.to_le_bytes()).unwrap();
+                return 11; // BUFFER_TOO_SMALL
             }
             let row = remaining.remove(0);
             mem.write(&mut caller, buf as usize, &row).unwrap();
@@ -286,6 +309,10 @@ impl Host {
             let mem = caller.get_export("memory").unwrap().into_memory().unwrap();
             let mut needle = vec![0u8; rel_len as usize];
             mem.read(&caller, rel as usize, &mut needle).unwrap();
+            // `rel` is a BSATN Vec<ProductValue>: [u32 count][rows...]. The runtime
+            // deletes one row per call (count == 1), so strip the 4-byte header and
+            // match the remaining single-row bytes.
+            let needle = if needle.len() >= 4 { needle[4..].to_vec() } else { needle };
             let before;
             let after;
             {
