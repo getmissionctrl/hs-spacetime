@@ -64,8 +64,10 @@ library spacetime-server
   import:           warnings
   hs-source-dirs:   server/src
   default-language: Haskell2010
-  exposed-modules:  SpacetimeDB.Server.Types
-  other-modules:    SpacetimeDB.Server.Internal
+  exposed-modules:  SpacetimeDB.Server
+                    SpacetimeDB.Server.Types
+                    SpacetimeDB.Server.Dispatch
+                    SpacetimeDB.Server.Internal
   build-depends:    base >=4.14 && <5, bytestring, text, bsatn
   if flag(wasm)
     exposed-modules: SpacetimeDB.Server.ABI
@@ -103,5 +105,6 @@ test-suite hs-spacetime-test
                     SpacetimeDB.Client.StateSpec
                     SpacetimeDB.Client.DispatchSpec
                     SpacetimeDB.Client.ConnectionSpec
-  build-depends:    base, hs-spacetime, hspec, QuickCheck
+                    SpacetimeDB.Server.DispatchSpec
+  build-depends:    base, hs-spacetime, spacetime-server, hspec, QuickCheck
                   , bytestring, text, containers, wide-word, zlib, stm, process
