@@ -6,8 +6,10 @@
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE OverloadedRecordDot #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
 
@@ -23,13 +25,14 @@ module SpacetimeDB.Server.Derive
   ) where
 
 import Data.Char (isUpper, toLower)
+import Data.Kind (Type)
 import Data.Proxy (Proxy (..))
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Typeable (Typeable, tyConName, typeRep, typeRepTyCon)
 import Data.Word (Word16, Word32)
 import GHC.Generics
-import GHC.TypeLits (KnownSymbol, symbolVal)
+import GHC.TypeLits (KnownSymbol, Symbol, symbolVal)
 import SpacetimeDB.Server.HKD
   ( ColAttrVal (..)
   , GCols
@@ -42,7 +45,7 @@ import SpacetimeDB.Server.HKD
   , lifecycleHookName
   , lifecycleVal
   )
-import SpacetimeDB.Server.Internal (ModuleDef (..))
+import SpacetimeDB.Server.Internal (BoundReducer (..), ModuleDef (..), ReducerM)
 import SpacetimeDB.Server.Reducer (Reducer, reducer, reducerName)
 import SpacetimeDB.Server.Schema
 import SpacetimeDB.Server.SpacetimeType (SpacetimeType (..))
@@ -97,14 +100,20 @@ derive the schema bytes from the @App@ value.
 -}
 deriveModule
   :: forall app handlers
-   . (Generic app, GAppTables (Rep app), GAppReducers (Rep app))
+   . ( Generic app
+     , Generic handlers
+     , GAppTables (Rep app)
+     , GAppReducers (Rep app)
+     , GHandlers (Rep handlers)
+     , AppSigs (Rep app) ~ HandlerSigs (Rep handlers)
+     )
   => app
   -> handlers
   -> ModuleDef
-deriveModule appVal _handlers =
+deriveModule appVal handlers =
   ModuleDef
     { schemaBytes = encodeModule schema
-    , reducers = [] -- dispatch list added in Task 7
+    , reducers = gHandlers (from handlers)
     }
  where
   parts = gAppTables (from appVal)
@@ -224,3 +233,39 @@ instance
 paramFields :: AlgType -> [Field]
 paramFields (TProduct fs) = fs
 paramFields other = [Field Nothing other]
+
+-- | Turn a handlers record into an ordered '[BoundReducer]' (field order).
+class GHandlers (rep :: Type -> Type) where
+  gHandlers :: rep x -> [BoundReducer]
+
+instance (GHandlers f) => GHandlers (D1 m f) where gHandlers (M1 x) = gHandlers x
+instance (GHandlers f) => GHandlers (C1 m f) where gHandlers (M1 x) = gHandlers x
+instance (GHandlers a, GHandlers b) => GHandlers (a :*: b) where
+  gHandlers (a :*: b) = gHandlers a ++ gHandlers b
+
+instance
+  (SpacetimeType a)
+  => GHandlers (S1 m (K1 i (a -> ReducerM ())))
+  where
+  gHandlers (M1 (K1 h)) = [BoundReducer (decodeVal @a) h]
+
+-- | Append at the type level, for concatenating field signatures.
+type family (xs :: [k]) ++ (ys :: [k]) :: [k] where
+  '[] ++ ys = ys
+  (x ': xs) ++ ys = x ': (xs ++ ys)
+
+-- | @(name, argType)@ of each Reducer/Lifecycle field of an App rep, in order.
+type family AppSigs (rep :: Type -> Type) :: [(Symbol, Type)] where
+  AppSigs (D1 m f) = AppSigs f
+  AppSigs (C1 m f) = AppSigs f
+  AppSigs (a :*: b) = AppSigs a ++ AppSigs b
+  AppSigs (S1 ('MetaSel ('Just n) su ss ds) (K1 i (Reducer a))) = '[ '(n, a)]
+  AppSigs (S1 ('MetaSel ('Just n) su ss ds) (K1 i (LifecycleHook l))) = '[ '(n, ())]
+  AppSigs (S1 m (K1 i (Table row))) = '[]
+
+-- | @(name, argType)@ of each handler field, in order (arg stripped from @a -> ReducerM ()@).
+type family HandlerSigs (rep :: Type -> Type) :: [(Symbol, Type)] where
+  HandlerSigs (D1 m f) = HandlerSigs f
+  HandlerSigs (C1 m f) = HandlerSigs f
+  HandlerSigs (a :*: b) = HandlerSigs a ++ HandlerSigs b
+  HandlerSigs (S1 ('MetaSel ('Just n) su ss ds) (K1 i (a -> ReducerM ()))) = '[ '(n, a)]

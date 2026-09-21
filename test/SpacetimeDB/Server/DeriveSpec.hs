@@ -12,17 +12,20 @@
 module SpacetimeDB.Server.DeriveSpec (spec) where
 
 import qualified Data.ByteString as BS
+import Data.IORef
 import Data.Int (Int64)
 import Data.Text (Text)
 import Data.Word (Word32, Word64)
 import GHC.Generics (Generic)
-import SpacetimeDB.Server (ModuleDef, describeBytes)
+import SpacetimeDB.BSATN.Encoder (runEncoder)
+import SpacetimeDB.Server (ModuleDef, describeBytes, dispatchReducer, mkContext)
 import SpacetimeDB.Server.Derive
 import SpacetimeDB.Server.HKD
+import SpacetimeDB.Server.Internal (Backend (..), TableId (..))
 import SpacetimeDB.Server.Reducer (Reducer, reducerName)
 import SpacetimeDB.Server.Schema (Lifecycle (..))
-import SpacetimeDB.Server.SpacetimeType (SpacetimeType)
-import SpacetimeDB.Server.Table (Table, tableName)
+import SpacetimeDB.Server.SpacetimeType (SpacetimeType (..))
+import SpacetimeDB.Server.Table (Table, insertRow, tableName)
 import SpacetimeDB.Server.Types (ReducerM)
 import Test.Hspec
 
@@ -62,6 +65,31 @@ widgetModule =
     WidgetHandlers
       { addWidget = \_ -> pure ()
       , init = \() -> pure ()
+      }
+
+-- Negative compile proofs (verified out-of-band; see the design's exhaustiveness
+-- guarantee). @deriveModule@ requires @AppSigs (Rep app) ~ HandlerSigs (Rep
+-- handlers)@, so a handlers record that does not match the App's reducer fields
+-- position-for-position is a *compile* error:
+--
+--   * Missing handler (App has @init@, handlers omit it):
+--       Couldn't match type: '[ '("init", ())] with: '[]
+--         arising from a use of 'deriveModule'
+--
+--   * Wrong argument type (handler takes @RecordArgs@, App declares @AddWidgetArgs@):
+--       Couldn't match type 'AddWidgetArgs' with 'RecordArgs'
+--         arising from a use of 'deriveModule'
+--
+-- (A renamed or reordered handler fails the same way via a symbol mismatch.)
+
+-- A live variant whose add_widget handler actually inserts a row.
+widgetModuleLive :: ModuleDef
+widgetModuleLive =
+  deriveModule
+    app
+    WidgetHandlers
+      { addWidget = \(AddWidgetArgs n q) -> insertRow app.widget (Widget 0 n q)
+      , init = \() -> insertRow app.widget (Widget 0 "seed" 1)
       }
 
 -- Event fixture: reproduces the phase-1 event golden through the derived path.
@@ -120,3 +148,20 @@ spec = describe "Server.Derive" $ do
     it "event App derives schema bytes byte-identical to the Rust golden" $ do
       golden <- BS.readFile "phase1/golden/event.schema.bsatn"
       describeBytes eventModule `shouldBe` golden
+
+    it "dispatches reducer 0 (add_widget) through the derived handler" $ do
+      inserted <- newIORef []
+      let be =
+            Backend
+              { tableId = \_ -> pure (Right (TableId 1))
+              , insert = \_ row -> modifyIORef' inserted (++ [row]) >> pure (Right ())
+              , scan = \_ -> pure (Right BS.empty)
+              , delete = \_ _ -> pure (Right ())
+              , log = \_ -> pure ()
+              }
+          args = runEncoder encodeVal (AddWidgetArgs "a" 10)
+      -- add_widget is reducer id 0 (first reducer field of App / handlers)
+      r <- dispatchReducer widgetModuleLive 0 (mkContext 0 0 0 0 0 0 0) args be
+      r `shouldBe` Right ()
+      rows <- readIORef inserted
+      length rows `shouldBe` 1
