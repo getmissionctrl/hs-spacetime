@@ -1,5 +1,6 @@
 module Main (main) where
 
+import Control.Exception (finally)
 import Control.Monad (void)
 import Data.Function ((&))
 import qualified Data.Text as T
@@ -10,6 +11,7 @@ import Brick.BChan (newBChan, writeBChan)
 import Graphics.Vty.Config (defaultConfig)
 import Graphics.Vty.CrossPlatform (mkVty)
 
+-- App(..) brings the record fields into scope for HasField (app.user, app.sendMessage, …)
 import Chat (App (..), SendMessageArgs (..), SetNameArgs (..), app)
 import Chat.Tui.Model (InputAction (..), emptyChat)
 import Chat.Tui.Ui (UiEvent (..), UiState (..), chatApp)
@@ -44,6 +46,6 @@ main = do
           initial = UiState {uiChat = emptyChat, uiSend = send}
       vty0 <- mkVty defaultConfig
       void (customMain vty0 (mkVty defaultConfig) (Just chan) chatApp initial)
-      stop client
+        `finally` stop client
  where
   subSql t = "SELECT * FROM " <> t

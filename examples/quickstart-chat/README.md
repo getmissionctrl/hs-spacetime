@@ -134,3 +134,12 @@ a published version (the template used a monorepo `workspace:*` ref), and the
 `package.json` module scripts point at the prebuilt wasm via `--bin-path`. Everything
 under `src/` is the upstream template verbatim, aside from relaxing one over-strict
 test assertion (`getByText` → `getAllByText` for a name that renders in two places).
+
+## Haskell TUI client
+
+A terminal chat client written in Haskell (Brick), reusing the server module's
+typed handles. See [`client-tui/README.md`](client-tui/README.md). Quick start
+(with a published module + running server):
+
+    STDB_HOST=127.0.0.1 STDB_PORT=3000 STDB_DB=quickstart-chat \
+      cabal run chat-tui:exe:chat-tui
