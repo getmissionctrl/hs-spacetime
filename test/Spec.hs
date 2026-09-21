@@ -5,10 +5,10 @@ import qualified SpacetimeDB.BSATN.EncoderSpec
 import qualified SpacetimeDB.BSATN.RoundtripSpec
 import qualified SpacetimeDB.BSATN.TypesSpec
 import qualified SpacetimeDB.Client.ConnectionSpec
-import qualified SpacetimeDB.Client.TypedSpec
 import qualified SpacetimeDB.Client.DispatchSpec
 import qualified SpacetimeDB.Client.EndpointSpec
 import qualified SpacetimeDB.Client.StateSpec
+import qualified SpacetimeDB.Client.TypedSpec
 import qualified SpacetimeDB.Codegen.GeneratedRoundtripSpec
 import qualified SpacetimeDB.Codegen.GoldenSpec
 import qualified SpacetimeDB.Codegen.SchemaSpec
@@ -16,12 +16,12 @@ import qualified SpacetimeDB.IntegrationCheck
 import qualified SpacetimeDB.Protocol.FrameSpec
 import qualified SpacetimeDB.Protocol.MessagesSpec
 import qualified SpacetimeDB.Protocol.RowListSpec
+import qualified SpacetimeDB.Server.DeriveSpec
 import qualified SpacetimeDB.Server.DispatchSpec
+import qualified SpacetimeDB.Server.HKDSpec
 import qualified SpacetimeDB.Server.SchemaSpec
 import qualified SpacetimeDB.Server.SpacetimeTypeSpec
 import qualified SpacetimeDB.Server.TableSpec
-import qualified SpacetimeDB.Server.DeriveSpec
-import qualified SpacetimeDB.Server.HKDSpec
 import System.Environment (lookupEnv)
 import Test.Hspec (Spec, describe, hspec)
 

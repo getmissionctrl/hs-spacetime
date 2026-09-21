@@ -77,7 +77,7 @@ camelToSnake = T.pack . go . T.unpack
 deriveApp :: (Generic a, GDeriveApp (Rep a)) => a
 deriveApp = to gderiveApp
 
-class GDeriveApp (rep :: * -> *) where
+class GDeriveApp (rep :: Type -> Type) where
   gderiveApp :: rep x
 
 instance (GDeriveApp f) => GDeriveApp (D1 meta f) where
@@ -136,7 +136,7 @@ data TablePart = TablePart
   }
 
 -- | Collect table parts from an App value (in field order).
-class GAppTables (rep :: * -> *) where
+class GAppTables (rep :: Type -> Type) where
   gAppTables :: rep x -> [TablePart]
 
 instance (GAppTables f) => GAppTables (D1 m f) where gAppTables (M1 x) = gAppTables x
@@ -205,7 +205,7 @@ tablePartFor tname =
   autoNamed = [(ix, cn) | (ix, (cn, _, attrs)) <- indexed, ColAutoInc `elem` attrs]
 
 -- | Collect reducer schemas from an App value (skips tables), in field order.
-class GAppReducers (rep :: * -> *) where
+class GAppReducers (rep :: Type -> Type) where
   gAppReducers :: rep x -> [ReducerSchema]
 
 instance (GAppReducers f) => GAppReducers (D1 m f) where gAppReducers (M1 x) = gAppReducers x
