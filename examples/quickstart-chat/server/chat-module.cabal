@@ -31,7 +31,8 @@ library
   exposed-modules:  Chat
   build-depends:    base
                   , text
-                  , hs-spacetime
+                  , hs-spacetime:spacetime-server
+                  , hs-spacetime:bsatn
   ghc-options:      -Wall
 
 test-suite chat-module-test
@@ -46,21 +47,27 @@ test-suite chat-module-test
                   , text
                   , bytestring
                   , containers
-                  , hs-spacetime
+                  , hs-spacetime:spacetime-server
+                  , hs-spacetime:bsatn
                   , chat-module
                   , hspec
   ghc-options:      -Wall
 
--- Fleshed out in a later task; the wasm reactor exports come from the
--- widget-module-example stanza in hs-spacetime.cabal.
+-- WASI-free wasm reactor. Mirrors the person-module-example stanza in
+-- hs-spacetime.cabal: the reactor wrapper (app/ChatModule.hs) re-exports the
+-- ABI entry points over Chat.chatModule.
 executable chat-module
   import:           extensions
-  hs-source-dirs:   src
-  main-is:          Main.hs
+  hs-source-dirs:   app
+  main-is:          ChatModule.hs
   if !flag(wasm)
     buildable: False
   if flag(wasm)
-    build-depends:  base, bytestring, text, hs-spacetime
+    build-depends:  base
+                  , text
+                  , hs-spacetime:spacetime-server
+                  , hs-spacetime:bsatn
+                  , chat-module
     ghc-options:    -no-hs-main -optl-mexec-model=reactor
                     -optl-Wl,--export=__describe_module__
                     -optl-Wl,--export=__call_reducer__
