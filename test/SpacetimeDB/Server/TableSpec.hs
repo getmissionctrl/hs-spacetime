@@ -1,8 +1,11 @@
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE NoFieldSelectors #-}
 
 module SpacetimeDB.Server.TableSpec (spec) where
@@ -14,14 +17,21 @@ import Data.Text (Text)
 import GHC.Generics (Generic)
 import SpacetimeDB.BSATN.Encoder (runEncoder)
 import SpacetimeDB.Server (ReducerM, mkContext)
+import SpacetimeDB.Server.HKD (Column, View (..))
 import SpacetimeDB.Server.Internal (Backend (..), TableId (..), runReducerM)
 import SpacetimeDB.Server.SpacetimeType (SpacetimeType (..))
 import SpacetimeDB.Server.Table
 import Test.Hspec
 
-data Event = Event {who :: Text, at :: Int64}
-  deriving stock (Eq, Show, Generic)
-  deriving anyclass (SpacetimeType)
+data Event f = Event
+  { who :: Column f Text '[]
+  , at :: Column f Int64 '[]
+  }
+  deriving stock (Generic)
+
+deriving stock instance Show (Event 'Value)
+deriving stock instance Eq (Event 'Value)
+deriving anyclass instance SpacetimeType (Event 'Value)
 
 eventTable :: Table Event
 eventTable = table "event"
@@ -47,7 +57,7 @@ spec = describe "Server.Table" $ do
     r <- run (mkBackend ins BS.empty) (insertRow eventTable (Event "alice" 42))
     r `shouldBe` Right ()
     rows <- readIORef ins
-    rows `shouldBe` [runEncoder encodeVal (Event "alice" 42)]
+    rows `shouldBe` [runEncoder encodeVal (Event "alice" 42 :: Event 'Value)]
 
   it "scanRows decodes each row from the batch" $ do
     ins <- newIORef []
