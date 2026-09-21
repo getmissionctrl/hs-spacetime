@@ -16,6 +16,13 @@ import Data.Word (Word32)
 import GHC.Generics (Generic)
 import SpacetimeDB.BSATN.Decoder (runExact)
 import SpacetimeDB.BSATN.Encoder (runEncoder)
+import SpacetimeDB.BSATN.Types
+  ( ConnectionId
+  , Identity
+  , Timestamp (..)
+  , connectionIdFromInteger
+  , identityFromInteger
+  )
 import SpacetimeDB.Server.Schema (AlgType (..), Field (..))
 import SpacetimeDB.Server.SpacetimeType (SpacetimeType (..))
 import Test.Hspec
@@ -46,3 +53,10 @@ spec = describe "SpacetimeType" $ do
       `shouldBe` TProduct
         [Field (Just "flag") TBool, Field (Just "count") TU32, Field (Just "label") TString]
     runExact decodeVal (runEncoder encodeVal m) `shouldBe` Right m
+
+  it "Identity has the __identity__ product schema" $
+    algebraicType @Identity `shouldBe` TProduct [Field (Just "__identity__") TU256]
+
+  it "Identity round-trips through its BSATN codec" $ do
+    let x = identityFromInteger 123456789
+    runExact (decodeVal @Identity) (runEncoder encodeVal x) `shouldBe` Right x

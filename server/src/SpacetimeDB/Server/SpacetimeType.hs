@@ -2,6 +2,7 @@
 {-# LANGUAGE DefaultSignatures #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeOperators #-}
@@ -33,6 +34,17 @@ import Data.Word (Word16, Word32, Word64, Word8)
 import GHC.Generics
 import SpacetimeDB.BSATN.Decoder
 import SpacetimeDB.BSATN.Encoder
+import SpacetimeDB.BSATN.Types
+  ( ConnectionId
+  , Identity
+  , Timestamp
+  , decodeConnectionId
+  , decodeIdentity
+  , decodeTimestamp
+  , encodeConnectionId
+  , encodeIdentity
+  , encodeTimestamp
+  )
 import SpacetimeDB.Server.Schema (AlgType (..), Field (..))
 
 class SpacetimeType a where
@@ -121,6 +133,15 @@ instance SpacetimeType Double where
   algebraicType = TF64
   encodeVal = encodeF64
   decodeVal = f64
+
+-- Special scalar types: SpacetimeDB represents each inline as a single-field
+-- product with a reserved marker field name. The value BSATN reuses the existing
+-- codecs from "SpacetimeDB.BSATN.Types".
+
+instance SpacetimeType Identity where
+  algebraicType = TProduct [Field (Just "__identity__") TU256]
+  encodeVal = encodeIdentity
+  decodeVal = decodeIdentity
 
 -- Generic machinery over the 'Rep' of a single-constructor record.
 class GProd f where
