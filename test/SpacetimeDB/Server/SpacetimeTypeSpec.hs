@@ -68,3 +68,10 @@ spec = describe "SpacetimeType" $ do
   it "Timestamp round-trips through its BSATN codec" $ do
     let x = Timestamp 1700000000000000
     runExact (decodeVal @Timestamp) (runEncoder encodeVal x) `shouldBe` Right x
+
+  it "ConnectionId has the __connection_id__ product schema" $
+    algebraicType @ConnectionId `shouldBe` TProduct [Field (Just "__connection_id__") TU128]
+
+  it "ConnectionId round-trips through its BSATN codec" $ do
+    let x = connectionIdFromInteger 987654321
+    runExact (decodeVal @ConnectionId) (runEncoder encodeVal x) `shouldBe` Right x

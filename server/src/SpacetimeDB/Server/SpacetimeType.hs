@@ -148,6 +148,11 @@ instance SpacetimeType Timestamp where
   encodeVal = encodeTimestamp
   decodeVal = decodeTimestamp
 
+instance SpacetimeType ConnectionId where
+  algebraicType = TProduct [Field (Just "__connection_id__") TU128]
+  encodeVal = encodeConnectionId
+  decodeVal = decodeConnectionId
+
 -- Generic machinery over the 'Rep' of a single-constructor record.
 class GProd f where
   gFields :: [Field]
