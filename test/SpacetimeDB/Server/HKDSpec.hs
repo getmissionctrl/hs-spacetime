@@ -42,3 +42,10 @@ spec = describe "Server.HKD" $ do
   it "reflects a Schema-view column to its AlgType and attrs" $ do
     colAlgType @(ColInfo Word64 '[ 'Pk, 'AutoInc]) `shouldBe` TU64
     colAttrs @(ColInfo Word64 '[ 'Pk, 'AutoInc]) `shouldBe` [ColPk, ColAutoInc]
+
+  it "walks a Schema-view row into ordered (name, type, attrs) columns" $
+    columnsOf @Widget
+      `shouldBe` [ ("id", TU64, [ColPk, ColAutoInc])
+                 , ("name", TString, [])
+                 , ("quantity", TU32, [])
+                 ]

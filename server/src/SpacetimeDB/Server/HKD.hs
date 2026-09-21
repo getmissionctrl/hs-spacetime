@@ -1,6 +1,7 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -22,9 +23,16 @@ module SpacetimeDB.Server.HKD
   , ColAttrVal (..)
   , ColumnSpec (..)
   , ReifyAttrs (..)
+  , columnsOf
+  , GCols (..)
   ) where
 
 import Data.Kind (Type)
+import Data.Proxy (Proxy (..))
+import Data.Text (Text)
+import qualified Data.Text as T
+import GHC.Generics
+import GHC.TypeLits (KnownSymbol, symbolVal)
 import SpacetimeDB.Server.Schema (AlgType)
 import SpacetimeDB.Server.SpacetimeType (SpacetimeType (..))
 
@@ -78,3 +86,29 @@ instance ReifyAttr 'Pk where
 
 instance ReifyAttr 'AutoInc where
   reifyAttr = ColAutoInc
+
+-- | Ordered columns of a row, read from its 'Schema' view: (name, type, attrs).
+columnsOf
+  :: forall (row :: Row)
+   . (Generic (row 'Schema), GCols (Rep (row 'Schema)))
+  => [(Text, AlgType, [ColAttrVal])]
+columnsOf = gcols @(Rep (row 'Schema))
+
+-- | Generic walk over a row's 'Schema'-view representation.
+class GCols (rep :: Type -> Type) where
+  gcols :: [(Text, AlgType, [ColAttrVal])]
+
+instance (GCols f) => GCols (D1 meta f) where
+  gcols = gcols @f
+
+instance (GCols f) => GCols (C1 meta f) where
+  gcols = gcols @f
+
+instance (GCols a, GCols b) => GCols (a :*: b) where
+  gcols = gcols @a ++ gcols @b
+
+instance
+  (KnownSymbol name, ColumnSpec t)
+  => GCols (S1 ('MetaSel ('Just name) su ss ds) (K1 i t))
+  where
+  gcols = [(T.pack (symbolVal (Proxy @name)), colAlgType @t, colAttrs @t)]
