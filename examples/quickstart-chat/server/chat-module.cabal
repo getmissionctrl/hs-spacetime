@@ -1,0 +1,66 @@
+cabal-version:      3.0
+name:               chat-module
+version:            0.1.0.0
+synopsis:           quickstart-chat example SpacetimeDB server module (Haskell)
+license:            MIT
+build-type:         Simple
+
+flag wasm
+  description: Build the wasm-only reactor for this example module.
+  default:     False
+  manual:      True
+
+common extensions
+  default-language:   GHC2021
+  default-extensions: DataKinds
+                      DeriveAnyClass
+                      DeriveGeneric
+                      DerivingStrategies
+                      DuplicateRecordFields
+                      FlexibleInstances
+                      OverloadedRecordDot
+                      OverloadedStrings
+                      StandaloneDeriving
+                      TypeFamilies
+                      TypeApplications
+                      NoFieldSelectors
+
+library
+  import:           extensions
+  hs-source-dirs:   src
+  exposed-modules:  Chat
+  build-depends:    base
+                  , text
+                  , hs-spacetime
+  ghc-options:      -Wall
+
+test-suite chat-module-test
+  import:           extensions
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   test
+  main-is:          Spec.hs
+  other-modules:    ChatSpec
+  build-tool-depends: hspec-discover:hspec-discover
+  build-depends:    base
+                  , text
+                  , bytestring
+                  , hs-spacetime
+                  , chat-module
+                  , hspec
+  ghc-options:      -Wall
+
+-- Fleshed out in a later task; the wasm reactor exports come from the
+-- widget-module-example stanza in hs-spacetime.cabal.
+executable chat-module
+  import:           extensions
+  hs-source-dirs:   src
+  main-is:          Main.hs
+  if !flag(wasm)
+    buildable: False
+  if flag(wasm)
+    build-depends:  base, bytestring, text, hs-spacetime
+    ghc-options:    -no-hs-main -optl-mexec-model=reactor
+                    -optl-Wl,--export=__describe_module__
+                    -optl-Wl,--export=__call_reducer__
+                    -optl-Wl,--export=_initialize
+                    -optl-Wl,--export-memory
