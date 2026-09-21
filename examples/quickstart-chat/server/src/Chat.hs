@@ -13,7 +13,7 @@ import Data.Text (Text)
 import Data.Text qualified as T
 import GHC.Generics (Generic)
 import SpacetimeDB.BSATN.Types (Identity, Timestamp)
-import SpacetimeDB.Server (ModuleDef, ask, deriveApp, insertRow, throwError)
+import SpacetimeDB.Server (ModuleDef, ask, deleteRow, deriveApp, insertRow, scanRows, throwError)
 import SpacetimeDB.Server.Derive (deriveModule)
 import SpacetimeDB.Server.HKD
   ( ColAttr (..)
@@ -85,19 +85,44 @@ data Handlers = Handlers
   }
   deriving stock (Generic)
 
+userIdentity :: User 'Value -> Identity
+userIdentity (User i _ _) = i
+
+-- | Apply @present@ to the sender's user row if one exists, else run @absent@.
+withSenderUser :: (User 'Value -> ReducerM ()) -> ReducerM () -> ReducerM ()
+withSenderUser present absent = do
+  ReducerContext {sender = s} <- ask
+  users <- scanRows app.user
+  case filter (\u -> userIdentity u == s) users of
+    (u : _) -> present u
+    [] -> absent
+
+setOnline :: Bool -> ReducerM ()
+setOnline flag = do
+  ReducerContext {sender = s} <- ask
+  withSenderUser
+    (\old@(User i n _) -> deleteRow app.user old >> insertRow app.user (User i n flag))
+    (if flag then insertRow app.user (User s Nothing True) else pure ())
+
 -- | The derived chat module.
 chatModule :: ModuleDef
 chatModule =
   deriveModule
     app
     Handlers
-      { setName = \_ -> pure () -- Task A4
+      { setName = \(SetNameArgs n) ->
+          if T.null n
+            then throwError "Names must not be empty"
+            else
+              withSenderUser
+                (\old@(User i _ o) -> deleteRow app.user old >> insertRow app.user (User i (Just n) o))
+                (throwError "Cannot set name for unknown user")
       , sendMessage = \(SendMessageArgs t) -> do
           ReducerContext {sender = s, timestamp = ts} <- ask
           if T.null t
             then throwError "Messages must not be empty"
             else insertRow app.message (Message s ts t)
       , init = \() -> pure ()
-      , clientConnected = \() -> pure () -- Task A5
-      , clientDisconnected = \() -> pure () -- Task A5
+      , clientConnected = \() -> setOnline True
+      , clientDisconnected = \() -> setOnline False
       }
