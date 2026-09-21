@@ -74,9 +74,7 @@ handle = \case
   VtyEvent (V.EvKey (V.KChar c) []) ->
     modify (\s -> s {uiChat = s.uiChat {csInput = s.uiChat.csInput `T.snoc` c}})
   VtyEvent (V.EvKey V.KBS []) ->
-    modify (\s -> s {uiChat = s.uiChat {csInput = dropLast s.uiChat.csInput}})
+    modify (\s -> s {uiChat = s.uiChat {csInput = T.dropEnd 1 s.uiChat.csInput}})
   VtyEvent (V.EvKey V.KEsc []) -> halt
   VtyEvent (V.EvKey (V.KChar 'c') [V.MCtrl]) -> halt
   _ -> pure ()
- where
-  dropLast t = if T.null t then t else T.init t

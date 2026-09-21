@@ -23,7 +23,6 @@ library
   build-depends:    base
                   , text
                   , containers
-                  , mtl
                   , brick
                   , vty
                   , hs-spacetime
