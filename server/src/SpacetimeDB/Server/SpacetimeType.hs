@@ -153,6 +153,12 @@ instance SpacetimeType ConnectionId where
   encodeVal = encodeConnectionId
   decodeVal = decodeConnectionId
 
+-- | @Option<T>@ is a two-variant sum: @some@ carries the payload, @none@ is empty.
+instance (SpacetimeType a) => SpacetimeType (Maybe a) where
+  algebraicType = TSum [Field (Just "some") (algebraicType @a), Field (Just "none") (TProduct [])]
+  encodeVal = encodeOptionalOf encodeVal
+  decodeVal = optional decodeVal
+
 -- Generic machinery over the 'Rep' of a single-constructor record.
 class GProd f where
   gFields :: [Field]

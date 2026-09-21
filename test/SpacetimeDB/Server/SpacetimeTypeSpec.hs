@@ -75,3 +75,11 @@ spec = describe "SpacetimeType" $ do
   it "ConnectionId round-trips through its BSATN codec" $ do
     let x = connectionIdFromInteger 987654321
     runExact (decodeVal @ConnectionId) (runEncoder encodeVal x) `shouldBe` Right x
+
+  it "Maybe has the some/none option sum schema" $
+    algebraicType @(Maybe Text)
+      `shouldBe` TSum [Field (Just "some") TString, Field (Just "none") (TProduct [])]
+
+  it "Maybe round-trips Just and Nothing through its BSATN codec" $ do
+    runExact (decodeVal @(Maybe Text)) (runEncoder encodeVal (Just "hi" :: Maybe Text)) `shouldBe` Right (Just "hi")
+    runExact (decodeVal @(Maybe Text)) (runEncoder encodeVal (Nothing :: Maybe Text)) `shouldBe` Right Nothing
