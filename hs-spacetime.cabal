@@ -75,7 +75,6 @@ library spacetime-server
                     SpacetimeDB.Server.Table
                     SpacetimeDB.Server.Reducer
                     SpacetimeDB.Server.HKD
-                    SpacetimeDB.Server.Module
   build-depends:    base >=4.14 && <5, bytestring, text, bsatn
   if flag(wasm)
     exposed-modules: SpacetimeDB.Server.ABI
@@ -149,6 +148,5 @@ test-suite hs-spacetime-test
                     SpacetimeDB.Server.SpacetimeTypeSpec
                     SpacetimeDB.Server.TableSpec
                     SpacetimeDB.Server.HKDSpec
-                    SpacetimeDB.Server.ModuleSpec
   build-depends:    base, hs-spacetime, spacetime-server, hspec, QuickCheck
                   , bytestring, text, containers, wide-word, zlib, stm, process

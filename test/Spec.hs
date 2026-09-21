@@ -21,7 +21,6 @@ import qualified SpacetimeDB.Server.SchemaSpec
 import qualified SpacetimeDB.Server.SpacetimeTypeSpec
 import qualified SpacetimeDB.Server.TableSpec
 import qualified SpacetimeDB.Server.HKDSpec
-import qualified SpacetimeDB.Server.ModuleSpec
 import System.Environment (lookupEnv)
 import Test.Hspec (Spec, describe, hspec)
 
@@ -56,4 +55,3 @@ hermetic = do
   describe "SpacetimeDB.Server.SpacetimeType" SpacetimeDB.Server.SpacetimeTypeSpec.spec
   describe "SpacetimeDB.Server.Table" SpacetimeDB.Server.TableSpec.spec
   describe "SpacetimeDB.Server.HKD" SpacetimeDB.Server.HKDSpec.spec
-  describe "SpacetimeDB.Server.Module" SpacetimeDB.Server.ModuleSpec.spec

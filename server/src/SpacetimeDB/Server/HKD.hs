@@ -25,6 +25,10 @@ module SpacetimeDB.Server.HKD
   , ReifyAttrs (..)
   , columnsOf
   , GCols (..)
+  , LifecycleHook
+  , lifecycleHook
+  , lifecycleHookName
+  , KnownLifecycle (..)
   ) where
 
 import Data.Kind (Type)
@@ -33,7 +37,7 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import GHC.Generics
 import GHC.TypeLits (KnownSymbol, symbolVal)
-import SpacetimeDB.Server.Schema (AlgType)
+import SpacetimeDB.Server.Schema (AlgType, Lifecycle (..))
 import SpacetimeDB.Server.SpacetimeType (SpacetimeType (..))
 
 -- | The view a row is being looked at through.
@@ -112,3 +116,24 @@ instance
   => GCols (S1 ('MetaSel ('Just name) su ss ds) (K1 i t))
   where
   gcols = [(T.pack (symbolVal (Proxy @name)), colAlgType @t, colAttrs @t)]
+
+{- | A lifecycle-reducer handle, phantom in its 'Lifecycle' phase (kind reuses the
+promoted 'Lifecycle' value type). Its argument is always @()@.
+-}
+newtype LifecycleHook (l :: Lifecycle) = LifecycleHook Text
+
+-- | Name a lifecycle hook.
+lifecycleHook :: Text -> LifecycleHook l
+lifecycleHook = LifecycleHook
+
+-- | The lifecycle hook's wire name.
+lifecycleHookName :: LifecycleHook l -> Text
+lifecycleHookName (LifecycleHook n) = n
+
+-- | Reflect a type-level 'Lifecycle' phase to its value.
+class KnownLifecycle (l :: Lifecycle) where
+  lifecycleVal :: Lifecycle
+
+instance KnownLifecycle 'Init where lifecycleVal = Init
+instance KnownLifecycle 'OnConnect where lifecycleVal = OnConnect
+instance KnownLifecycle 'OnDisconnect where lifecycleVal = OnDisconnect

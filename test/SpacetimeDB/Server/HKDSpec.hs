@@ -17,7 +17,7 @@ import Data.Text (Text)
 import Data.Word (Word32, Word64)
 import GHC.Generics (Generic)
 import SpacetimeDB.Server.HKD
-import SpacetimeDB.Server.Schema (AlgType (..))
+import SpacetimeDB.Server.Schema (AlgType (..), Lifecycle (..))
 import SpacetimeDB.Server.SpacetimeType (SpacetimeType)
 import Test.Hspec
 
@@ -49,3 +49,9 @@ spec = describe "Server.HKD" $ do
                  , ("name", TString, [])
                  , ("quantity", TU32, [])
                  ]
+
+  it "reflects a LifecycleHook's phase and name" $ do
+    lifecycleVal @'Init `shouldBe` Init
+    lifecycleHookName (initHook :: LifecycleHook 'Init) `shouldBe` "seed"
+ where
+  initHook = lifecycleHook "seed"
