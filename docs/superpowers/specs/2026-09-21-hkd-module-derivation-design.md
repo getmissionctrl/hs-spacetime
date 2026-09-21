@@ -68,6 +68,25 @@ subscribeTable app.widget "SELECT * FROM widget"
   (\ins _ -> mapM_ print (ins :: [Widget Value]))
 ```
 
+## Implementation decisions (refining this design)
+
+Firmed up while writing the plan; recorded here to keep spec and plan consistent:
+
+- `deriveModule app handlers` takes the `app` value (handle names are read from it),
+  rather than `deriveModule @App handlers` with a type application.
+- The lifecycle handle is `LifecycleHook (l :: Lifecycle)`, reusing the promoted
+  `Schema.Lifecycle` as its kind (so `init :: LifecycleHook 'Init`); avoids a name
+  clash with the `Lifecycle` value type.
+- Re-kinding `Table` to `Row` makes the term-level `ColumnAttr` / `#id`
+  `HasField` machinery ill-kinded (its row was a `Type` record). Since the HKD row
+  supersedes it, `defineModule` and `ColumnAttr` are **removed**; the retained
+  low-level path is the raw `ModuleSchema` + `encodeModule`, which `deriveModule`
+  targets directly.
+- v1 handler matching is **position-based**: `Handlers` fields are listed in the
+  same order as `App`'s reducer/lifecycle fields; name and argument type are
+  checked position-wise (mismatch or missing → compile error). Order-independent
+  matching by name is a follow-up.
+
 ## Components
 
 ### Row machinery
@@ -139,8 +158,9 @@ Handlers (value) ──generic match by name──▶ [BoundReducer] (dispatch)
 The HKD/`App` layer is a **frontend that emits the existing `ModuleSchema` IR**
 and reuses `encodeModule`, the dispatch layer, `SpacetimeType`, and `Table`.
 Nothing in `Schema.hs` / `Dispatch.hs` / `Internal.hs` changes semantically. The
-low-level `defineModule` / `ColumnAttr` API remains, both for power users and as
-the compilation target of the new frontend.
+retained low-level path is the **raw `ModuleSchema` + `encodeModule`**, which
+`deriveModule` targets directly. The previous `defineModule` / `ColumnAttr`
+convenience is removed (superseded by the HKD row + `App`).
 
 ## Affected existing code (migration)
 
@@ -161,9 +181,12 @@ not touch the BSATN codec or the goldens. Migrated as part of this work:
 - `Table.hs` and the client `subscribeTable` signatures.
 - Tests referencing `Table`/plain rows (`TableSpec`, `ModuleSpec`,
   `Client/TypedSpec`) updated to the HKD row.
+- `Module.hs` (`defineModule`/`ColumnAttr`) is removed; `ModuleSpec` is rewritten
+  against `deriveModule`.
 
-The low-level `defineModule` / `ColumnAttr` path is retained as the compilation
-target; where it names a row type it uses the `Value` view.
+Note: `PersonModule` emits the **event** golden (`event.schema.bsatn`); the
+separate `person.schema.bsatn` golden is exercised by `SchemaSpec` via the raw
+`encodeModule` path and is unaffected.
 
 ## Error handling
 
