@@ -1,14 +1,19 @@
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE ForeignFunctionInterface #-}
 {-# LANGUAGE OverloadedRecordDot #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE NoFieldSelectors #-}
 
-{- | Example reactor module authored entirely in Haskell types: the table is a
-record, the reducers are typed handlers, and the schema bytes are derived by
-'defineModule' (no embedded/captured bytes, no hand-written BSATN).
+{- | Example reactor module authored entirely in Haskell types: the whole @event@
+module — its table and three reducers — is derived from one @App@ record, and the
+schema bytes are derived by 'deriveModule' (no embedded/captured bytes, no
+hand-written BSATN).
 -}
 module PersonModule where
 
@@ -19,14 +24,12 @@ import GHC.Generics (Generic)
 import SpacetimeDB.BSATN.Types (Timestamp (..))
 import SpacetimeDB.Server
 import SpacetimeDB.Server.ABI (runCallReducer, runDescribe)
-import SpacetimeDB.Server.Module (Reducer, defineModule, reducer, reducerReg, tableReg)
 import SpacetimeDB.Server.SpacetimeType (SpacetimeType)
-import SpacetimeDB.Server.Table (Table, deleteRow, insertRow, scanRows, table)
 
--- The table row, as a plain record.
-data Event = Event {who :: Text, at :: Int64}
+-- The table row, as an HKD record (no column attributes).
+data Event f = Event {who :: Column f Text '[], at :: Column f Int64 '[]}
   deriving stock (Generic)
-  deriving anyclass (SpacetimeType)
+deriving anyclass instance SpacetimeType (Event 'Value)
 
 -- Reducer argument products, as plain records.
 newtype RecordArgs = RecordArgs {note :: Text}
@@ -37,38 +40,43 @@ newtype RecordNArgs = RecordNArgs {count :: Word32}
   deriving stock (Generic)
   deriving anyclass (SpacetimeType)
 
-eventTable :: Table Event
-eventTable = table "event"
+-- Field order fixes the schema (and dispatch) order: event, delete_all, record,
+-- record_n.
+data App = App
+  { event :: Table Event
+  , deleteAll :: Reducer ()
+  , record :: Reducer RecordArgs
+  , recordN :: Reducer RecordNArgs
+  }
+  deriving stock (Generic)
 
--- Type-safe reducer handles (name + argument type), declared once.
-deleteAll :: Reducer ()
-deleteAll = reducer "delete_all"
+app :: App
+app = deriveApp
 
-record :: Reducer RecordArgs
-record = reducer "record"
+data Handlers = Handlers
+  { deleteAll :: () -> ReducerM ()
+  , record :: RecordArgs -> ReducerM ()
+  , recordN :: RecordNArgs -> ReducerM ()
+  }
+  deriving stock (Generic)
 
-recordN :: Reducer RecordNArgs
-recordN = reducer "record_n"
-
-{- | Reducers listed in the schema's (alphabetical) order: delete_all, record,
-record_n. 'defineModule' matches dispatch ids to this order.
--}
 theModule :: ModuleDef
 theModule =
-  defineModule
-    [tableReg eventTable]
-    [ reducerReg deleteAll $ \() -> do
-        rows <- scanRows eventTable
-        mapM_ (deleteRow eventTable) rows
-    , reducerReg record $ \(RecordArgs n) -> do
-        ctx <- ask
-        let Timestamp micros = ctx.timestamp
-        insertRow eventTable (Event n micros)
-    , reducerReg recordN $ \(RecordNArgs c) ->
-        if c == 0
-          then throwError "count must be positive"
-          else insertRow eventTable (Event "n" (fromIntegral c))
-    ]
+  deriveModule
+    app
+    Handlers
+      { deleteAll = \() -> do
+          rows <- scanRows app.event
+          mapM_ (deleteRow app.event) rows
+      , record = \(RecordArgs n) -> do
+          ctx <- ask
+          let Timestamp micros = ctx.timestamp
+          insertRow app.event (Event n micros)
+      , recordN = \(RecordNArgs c) ->
+          if c == 0
+            then throwError "count must be positive"
+            else insertRow app.event (Event "n" (fromIntegral c))
+      }
 
 foreign export ccall hs_describe :: Word32 -> IO ()
 hs_describe :: Word32 -> IO ()
