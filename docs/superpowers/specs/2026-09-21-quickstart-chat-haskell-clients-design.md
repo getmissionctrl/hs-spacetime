@@ -94,11 +94,16 @@ Both clients target the published `quickstart-chat` module:
 
 ## Packaging & Order
 
-- **One spec, two components.** Build order:
-  1. `spacetime-client-core` sublibrary (extract/expose pure layers; native + wasm build green).
-  2. TUI client (native) — full vertical slice, ships first.
-  3. Browser spike (async JSFFI WebSocket smoke test) — checkpoint + fallback decision.
-  4. Browser chat client on top of the spike.
+- **One spec, two components, two independent tracks that can be built in parallel.**
+  The TUI depends only on the existing full `hs-spacetime` client library (nothing new); the browser client depends on the new `spacetime-client-core` sublibrary. The tracks share no build artifacts, so they proceed concurrently.
+  - **Track A — TUI (native):** self-contained; can start immediately.
+    1. Pure TUI view core + hermetic tests.
+    2. Brick app + live wiring + opt-in live e2e.
+  - **Track B — browser (wasm):** has an internal order.
+    1. `spacetime-client-core` sublibrary (expose pure layers; native + wasm build green).
+    2. Browser spike (async JSFFI WebSocket smoke test) — **checkpoint + fallback decision.**
+    3. Browser chat client on top of the spike.
+- Under subagent-driven execution the two tracks are dispatched as independent task streams; the only cross-track dependency is none (the shared server-module typed handles already exist in `chat-module`).
 - All new code under `examples/quickstart-chat/` except the `spacetime-client-core` sublibrary (added to the existing client cabal package) and the browser build script.
 
 ## File Structure (planned)
