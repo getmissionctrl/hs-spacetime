@@ -25,6 +25,7 @@ module SpacetimeDB.Server.HKD
   , ReifyAttrs (..)
   , columnsOf
   , GCols (..)
+  , Lifecycle (..)
   , LifecycleHook
   , lifecycleHook
   , lifecycleHookName
