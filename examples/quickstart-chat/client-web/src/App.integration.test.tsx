@@ -51,9 +51,12 @@ describe('App Integration Test', () => {
     await userEvent.click(submitNameButton);
 
     // If your DB or UI updates instantly, we can check that the new name shows up
+    // The name renders in more than one place (Profile heading + the Online
+    // users list, since the current user is online), so assert on >= 1 match
+    // rather than getByText's exactly-one requirement.
     await waitFor(
       () => {
-        expect(screen.getByText('TestUser')).toBeInTheDocument();
+        expect(screen.getAllByText('TestUser').length).toBeGreaterThan(0);
       },
       { timeout: 10000 }
     );
