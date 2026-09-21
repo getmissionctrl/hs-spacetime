@@ -49,6 +49,8 @@
             pkgs.binaryen
             pkgs.rustup
             pkgs.cargo
+            pkgs.nodejs
+            pkgs.python3
             spacetimeCli
           ];
         };

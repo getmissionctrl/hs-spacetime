@@ -1,0 +1,14 @@
+cabal-version:      3.0
+name:               spike
+version:            0.1.0.0
+build-type:         Simple
+
+executable spike
+  default-language: GHC2021
+  hs-source-dirs:   .
+  main-is:          Spike.hs
+  build-depends:    base, ghc-experimental
+  ghc-options:      -no-hs-main -optl-mexec-model=reactor
+                    -optl-Wl,--export=startSpike
+                    -optl-Wl,--export=_initialize
+                    -optl-Wl,--export-memory
