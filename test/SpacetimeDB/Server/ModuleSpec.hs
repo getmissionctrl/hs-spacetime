@@ -2,6 +2,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NoFieldSelectors #-}
 
@@ -85,7 +86,7 @@ initR = reducer "init"
 widgetModule :: ModuleDef
 widgetModule =
   defineModule
-    [tableWith widgetTable [PrimaryKey "id", AutoInc "id"]]
+    [tableWith widgetTable [PrimaryKey #id, AutoInc #id]]
     [ reducerReg addWidget (\(AddWidgetArgs _ _) -> pure ())
     , lifecycleReg Init initR (\() -> pure ())
     ]

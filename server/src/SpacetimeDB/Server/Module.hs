@@ -1,11 +1,16 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedRecordDot #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 {- | Assemble a runnable module from typed tables and reducers. 'defineModule'
 derives the full @RawModuleDef::V10@ schema bytes (via 'SpacetimeType' +
@@ -29,6 +34,7 @@ module SpacetimeDB.Server.Module
   ( TableReg
   , tableReg
   , tableWith
+  , Column
   , ColumnAttr (..)
   , ReducerReg
   , reducerReg
@@ -47,6 +53,9 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Typeable (Typeable, tyConName, typeRep, typeRepTyCon)
 import Data.Word (Word16)
+import GHC.OverloadedLabels (IsLabel (..))
+import GHC.Records (HasField)
+import GHC.TypeLits (KnownSymbol, symbolVal)
 import SpacetimeDB.BSATN.Decoder (Decoder)
 import SpacetimeDB.Server.Internal (BoundReducer (..), ModuleDef (..), ReducerM)
 import SpacetimeDB.Server.Reducer (Reducer, reducer, reducerName)
@@ -54,16 +63,26 @@ import SpacetimeDB.Server.Schema
 import SpacetimeDB.Server.SpacetimeType (SpacetimeType (..))
 import SpacetimeDB.Server.Table (Table, tableName)
 
--- | A per-column table attribute, referencing a column by its field name.
-data ColumnAttr
-  = PrimaryKey Text
-  | AutoInc Text
+{- | A column of @row@, referenced by field name via an overloaded label (e.g.
+@#id@). The 'IsLabel' instance requires @row@ to actually have that field, so a
+mis-typed column name is a compile error rather than a silent runtime fallback.
+-}
+newtype Column row = Column Text
+  deriving stock (Eq, Show)
+
+instance (HasField name row ty, KnownSymbol name) => IsLabel name (Column row) where
+  fromLabel = Column (T.pack (symbolVal (Proxy @name)))
+
+-- | A per-column table attribute, referencing an existing column of @row@.
+data ColumnAttr row
+  = PrimaryKey (Column row)
+  | AutoInc (Column row)
   deriving stock (Eq, Show)
 
 {- | A table registered into a module, with any column attributes. Its row type
 is a 'SpacetimeType' (schema + row codec) and 'Typeable' (exported type name).
 -}
-data TableReg = forall row. (SpacetimeType row, Typeable row) => TableReg (Table row) [ColumnAttr]
+data TableReg = forall row. (SpacetimeType row, Typeable row) => TableReg (Table row) [ColumnAttr row]
 
 {- | A reducer registered into a module: a name, optional lifecycle role, and a
 typed handler.
@@ -75,7 +94,7 @@ tableReg :: (SpacetimeType row, Typeable row) => Table row -> TableReg
 tableReg t = TableReg t []
 
 -- | Register a table with column attributes (primary key, auto-inc).
-tableWith :: (SpacetimeType row, Typeable row) => Table row -> [ColumnAttr] -> TableReg
+tableWith :: (SpacetimeType row, Typeable row) => Table row -> [ColumnAttr row] -> TableReg
 tableWith = TableReg
 
 -- | Register a client-callable reducer from its typed handle.
@@ -109,7 +128,7 @@ defineModule tbls rdcrs =
     let fields = rowFields t
         tname = tableName t
         colOf c = colIndex fields c
-        pkCols = [colOf c | PrimaryKey c <- attrs]
+        pkCols = [colOf c | PrimaryKey (Column c) <- attrs]
      in TableSchema
           { name = tname
           , productTypeRef = i
@@ -120,9 +139,9 @@ defineModule tbls rdcrs =
                   , accessorName = Just c
                   , columns = [colOf c]
                   }
-              | PrimaryKey c <- attrs
+              | PrimaryKey (Column c) <- attrs
               ]
-          , constraints = [ConstraintDef {sourceName = Nothing, uniqueColumns = [colOf c]} | PrimaryKey c <- attrs]
+          , constraints = [ConstraintDef {sourceName = Nothing, uniqueColumns = [colOf c]} | PrimaryKey (Column c) <- attrs]
           , sequences =
               [ SequenceDef
                   { sourceName = Nothing
@@ -132,7 +151,7 @@ defineModule tbls rdcrs =
                   , maxValue = Nothing
                   , increment = 1
                   }
-              | AutoInc c <- attrs
+              | AutoInc (Column c) <- attrs
               ]
           , tableType = UserTable
           , tableAccess = PublicTable

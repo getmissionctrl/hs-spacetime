@@ -3,6 +3,7 @@
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE ForeignFunctionInterface #-}
+{-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NoFieldSelectors #-}
 
@@ -51,7 +52,7 @@ initR = reducer "init"
 theModule :: ModuleDef
 theModule =
   defineModule
-    [tableWith widgetTable [PrimaryKey "id", AutoInc "id"]]
+    [tableWith widgetTable [PrimaryKey #id, AutoInc #id]]
     [ reducerReg addWidget $ \(AddWidgetArgs n q) -> insertRow widgetTable (Widget 0 n q)
     , lifecycleReg Init initR $ \() -> insertRow widgetTable (Widget 0 "seed" 1)
     ]
