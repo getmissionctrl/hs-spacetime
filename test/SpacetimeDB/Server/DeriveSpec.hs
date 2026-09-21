@@ -18,6 +18,7 @@ import Data.Text (Text)
 import Data.Word (Word32, Word64)
 import GHC.Generics (Generic)
 import SpacetimeDB.BSATN.Encoder (runEncoder)
+import SpacetimeDB.BSATN.Types (ConnectionId, Identity, Timestamp)
 import SpacetimeDB.Server (ModuleDef, describeBytes, dispatchReducer, mkContext)
 import SpacetimeDB.Server.Derive
 import SpacetimeDB.Server.HKD
@@ -132,6 +133,33 @@ eventModule =
       , recordN = \_ -> pure ()
       }
 
+-- Probe fixture: exercises the four special-type primitives (Identity,
+-- Timestamp, ConnectionId, Maybe) through the derived path, mirroring the Rust
+-- probe oracle whose raw describe bytes are the golden.
+data Probe f = Probe
+  { id :: Column f Identity '[ 'Pk]
+  , ts :: Column f Timestamp '[]
+  , conn :: Column f ConnectionId '[]
+  , note :: Column f (Maybe Text) '[]
+  }
+  deriving stock (Generic)
+deriving anyclass instance SpacetimeType (Probe 'Value)
+
+data ProbeApp = ProbeApp
+  { probe :: Table Probe
+  , init :: LifecycleHook 'Init
+  }
+  deriving stock (Generic)
+
+probeApp :: ProbeApp
+probeApp = deriveApp
+
+data ProbeHandlers = ProbeHandlers {init :: () -> ReducerM ()}
+  deriving stock (Generic)
+
+probeModule :: ModuleDef
+probeModule = deriveModule probeApp ProbeHandlers {init = \() -> pure ()}
+
 spec :: Spec
 spec = describe "Server.Derive" $ do
   describe "deriveApp" $
@@ -148,6 +176,10 @@ spec = describe "Server.Derive" $ do
     it "event App derives schema bytes byte-identical to the Rust golden" $ do
       golden <- BS.readFile "phase1/golden/event.schema.bsatn"
       describeBytes eventModule `shouldBe` golden
+
+    it "probe App (Identity/Timestamp/ConnectionId/Maybe) matches the Rust golden" $ do
+      golden <- BS.readFile "phase2/golden/probe.schema.bsatn"
+      describeBytes probeModule `shouldBe` golden
 
     it "dispatches reducer 0 (add_widget) through the derived handler" $ do
       inserted <- newIORef []

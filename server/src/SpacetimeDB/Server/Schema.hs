@@ -36,7 +36,7 @@ module SpacetimeDB.Server.Schema
 import Data.Bits (shiftR, (.&.))
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Builder as B
-import Data.Maybe (mapMaybe)
+import Data.Maybe (isJust, mapMaybe)
 import Data.Text (Text)
 import Data.Word (Word16, Word32, Word8)
 import GHC.Generics (Generic)
@@ -155,24 +155,37 @@ encodeModule :: ModuleSchema -> BS.ByteString
 encodeModule m = runEncoder id (encodeSum 2 (encodeList (sections m) id))
 
 {- | The V10 sections, in the order the Rust builder emits them so the output
-byte-matches captured goldens. The LifeCycleReducers section appears only when
-some reducer has a lifecycle role.
+byte-matches captured goldens.
+
+@RawModuleDefV10@ is a @Vec\<Section>@ whose order is arbitrary; the Rust builder
+appends each section the first time it is touched (find-or-append). Replaying that
+first-touch order against the captured goldens gives: a lifecycle reducer touches
+@[LifeCycleReducers, Reducers, ExplicitNames]@ (in that order), a plain reducer
+touches @[Reducers, ExplicitNames]@, then tables/types touch @[Typespace, Types,
+Tables]@. So the only thing that moves is the LifeCycleReducers section, which lands
+before Reducers exactly when the first declared reducer is a lifecycle reducer (it
+creates that section before any plain reducer creates the Reducers section), and
+after ExplicitNames otherwise. It is absent when no reducer has a lifecycle role.
 -}
 sections :: ModuleSchema -> [B.Builder]
 sections m =
-  [ encodeSum 3 (encodeList m.reducers encodeReducer) -- Reducers
-  , encodeSum 10 (encodeU32 0) -- ExplicitNames { entries: [] }
-  ]
-    ++ lifecycleSection
+  reducerSections
     ++ [ encodeSum 0 (encodeList m.typespace encodeAlgType) -- Typespace
        , encodeSum 1 (encodeList m.types encodeTypeDef) -- Types
        , encodeSum 2 (encodeList m.tables encodeTable) -- Tables
        ]
  where
+  reducersSection = encodeSum 3 (encodeList m.reducers encodeReducer) -- Reducers
+  explicitNamesSection = encodeSum 10 (encodeU32 0) -- ExplicitNames { entries: [] }
   lcs = mapMaybe (\r -> (\lc -> (lc, r.name)) <$> r.lifecycle) m.reducers
-  lifecycleSection
-    | null lcs = []
-    | otherwise = [encodeSum 7 (encodeList lcs encodeLifecycleEntry)]
+  lifecycleSection = encodeSum 7 (encodeList lcs encodeLifecycleEntry)
+  headIsLifecycle = case m.reducers of
+    (r : _) -> isJust r.lifecycle
+    [] -> False
+  reducerSections
+    | null lcs = [reducersSection, explicitNamesSection]
+    | headIsLifecycle = [lifecycleSection, reducersSection, explicitNamesSection]
+    | otherwise = [reducersSection, explicitNamesSection, lifecycleSection]
   encodeLifecycleEntry (lc, nm) = encodeU8 (lifecycleTag lc) <> encodeString nm
 
 encodeAlgType :: Encoder AlgType
