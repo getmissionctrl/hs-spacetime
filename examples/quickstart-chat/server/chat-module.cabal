@@ -42,7 +42,6 @@ test-suite chat-module-test
   main-is:          Spec.hs
   other-modules:    ChatSpec
                   , FakeBackend
-  build-tool-depends: hspec-discover:hspec-discover
   build-depends:    base
                   , text
                   , bytestring
