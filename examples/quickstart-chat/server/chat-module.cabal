@@ -40,10 +40,12 @@ test-suite chat-module-test
   hs-source-dirs:   test
   main-is:          Spec.hs
   other-modules:    ChatSpec
+                  , FakeBackend
   build-tool-depends: hspec-discover:hspec-discover
   build-depends:    base
                   , text
                   , bytestring
+                  , containers
                   , hs-spacetime
                   , chat-module
                   , hspec
