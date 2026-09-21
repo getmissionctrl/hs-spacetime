@@ -143,6 +143,11 @@ instance SpacetimeType Identity where
   encodeVal = encodeIdentity
   decodeVal = decodeIdentity
 
+instance SpacetimeType Timestamp where
+  algebraicType = TProduct [Field (Just "__timestamp_micros_since_unix_epoch__") TI64]
+  encodeVal = encodeTimestamp
+  decodeVal = decodeTimestamp
+
 -- Generic machinery over the 'Rep' of a single-constructor record.
 class GProd f where
   gFields :: [Field]

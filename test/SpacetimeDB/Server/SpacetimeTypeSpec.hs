@@ -60,3 +60,11 @@ spec = describe "SpacetimeType" $ do
   it "Identity round-trips through its BSATN codec" $ do
     let x = identityFromInteger 123456789
     runExact (decodeVal @Identity) (runEncoder encodeVal x) `shouldBe` Right x
+
+  it "Timestamp has the __timestamp_micros_since_unix_epoch__ product schema" $
+    algebraicType @Timestamp
+      `shouldBe` TProduct [Field (Just "__timestamp_micros_since_unix_epoch__") TI64]
+
+  it "Timestamp round-trips through its BSATN codec" $ do
+    let x = Timestamp 1700000000000000
+    runExact (decodeVal @Timestamp) (runEncoder encodeVal x) `shouldBe` Right x
