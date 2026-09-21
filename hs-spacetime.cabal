@@ -42,6 +42,16 @@ library
   reexported-modules: SpacetimeDB.BSATN.Decoder
                     , SpacetimeDB.BSATN.Encoder
                     , SpacetimeDB.BSATN.Types
+                    , SpacetimeDB.Server
+                    , SpacetimeDB.Server.Types
+                    , SpacetimeDB.Server.Schema
+                    , SpacetimeDB.Server.SpacetimeType
+                    , SpacetimeDB.Server.Table
+                    , SpacetimeDB.Server.Reducer
+                    , SpacetimeDB.Server.HKD
+                    , SpacetimeDB.Server.Derive
+                    , SpacetimeDB.Server.Internal
+                    , SpacetimeDB.Server.Dispatch
   build-depends:    base >=4.14 && <5
                   , bsatn
                   , spacetime-server
