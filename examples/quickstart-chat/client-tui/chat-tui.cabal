@@ -5,6 +5,11 @@ synopsis:           quickstart-chat terminal (Brick) client, in Haskell
 license:            MIT
 build-type:         Simple
 
+flag wasm
+  description: Exclude this native (brick/vty) client from wasm build plans.
+  default:     False
+  manual:      True
+
 common extensions
   default-language:   GHC2021
   default-extensions: DataKinds
@@ -17,6 +22,8 @@ common extensions
 
 library
   import:           extensions
+  if flag(wasm)
+    buildable: False
   hs-source-dirs:   src
   exposed-modules:  Chat.Tui.Model
                   , Chat.Tui.Ui
@@ -33,6 +40,8 @@ library
 
 executable chat-tui
   import:           extensions
+  if flag(wasm)
+    buildable: False
   hs-source-dirs:   app
   main-is:          Main.hs
   build-depends:    base
@@ -48,6 +57,8 @@ executable chat-tui
 
 test-suite chat-tui-test
   import:           extensions
+  if flag(wasm)
+    buildable: False
   type:             exitcode-stdio-1.0
   hs-source-dirs:   test
   main-is:          Spec.hs
