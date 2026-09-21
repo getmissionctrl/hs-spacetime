@@ -18,11 +18,12 @@ common extensions
 library
   import:           extensions
   hs-source-dirs:   src
-  -- Chat.Tui.Ui is added in Task A3.
   exposed-modules:  Chat.Tui.Model
+                  , Chat.Tui.Ui
   build-depends:    base
                   , text
                   , containers
+                  , mtl
                   , brick
                   , vty
                   , hs-spacetime

@@ -1,12 +1,10 @@
 module Chat.Tui.ModelSpec (spec) where
 
-import qualified Data.Map.Strict as M
 import Test.Hspec
 
 import Chat (Message (..), User (..))
 import Chat.Tui.Model
 import SpacetimeDB.BSATN.Types (Identity, Timestamp (..), identityFromInteger)
-import SpacetimeDB.Server.HKD (View (Value))
 
 i1, i2 :: Identity
 i1 = identityFromInteger 1
