@@ -15,6 +15,7 @@ common warnings
 
 library bsatn
   import:           warnings
+  visibility:       public
   hs-source-dirs:   bsatn/src
   default-language: Haskell2010
   exposed-modules:  SpacetimeDB.BSATN.Decoder
@@ -74,6 +75,7 @@ library
 
 library spacetime-server
   import:           warnings
+  visibility:       public
   hs-source-dirs:   server/src
   default-language: Haskell2010
   exposed-modules:  SpacetimeDB.Server
