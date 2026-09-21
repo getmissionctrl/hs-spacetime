@@ -1,3 +1,5 @@
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
@@ -22,6 +24,7 @@ import Data.Text (Text)
 import SpacetimeDB.BSATN.Decoder (runExact)
 import SpacetimeDB.BSATN.Encoder (runEncoder)
 import SpacetimeDB.Client
+import SpacetimeDB.Server.HKD (Row, View (..))
 import SpacetimeDB.Server.Reducer (Reducer, reducerName)
 import SpacetimeDB.Server.SpacetimeType (SpacetimeType (..))
 import SpacetimeDB.Server.Table (Table, tableName)
@@ -44,11 +47,11 @@ deleted rows already decoded to @row@ via its 'SpacetimeType'. The query should
 select from the same table (e.g. @"SELECT * FROM widget"@).
 -}
 subscribeTable
-  :: forall row
-   . (SpacetimeType row)
+  :: forall (row :: Row)
+   . (SpacetimeType (row 'Value))
   => Table row
   -> Text
-  -> ([row] -> [row] -> IO ())
+  -> ([row 'Value] -> [row 'Value] -> IO ())
   -> Config
   -> Config
 subscribeTable tbl query onRows =
@@ -56,8 +59,8 @@ subscribeTable tbl query onRows =
     TypedInitial ins -> onRows (decodeRows ins) []
     TypedChange ins dels -> onRows (decodeRows ins) (decodeRows dels)
  where
-  decodeRows :: [ByteString] -> [row]
+  decodeRows :: [ByteString] -> [row 'Value]
   decodeRows = map decodeRow
-  decodeRow bs = case runExact (decodeVal @row) bs of
+  decodeRow bs = case runExact (decodeVal @(row 'Value)) bs of
     Right r -> r
     Left e -> error ("subscribeTable: row decode failed: " <> show e)

@@ -1,8 +1,11 @@
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE NoFieldSelectors #-}
 
 {- | Compile-level proof that one set of Haskell types + handles drives the typed
@@ -16,14 +19,20 @@ import Data.Word (Word32, Word64)
 import GHC.Generics (Generic)
 import SpacetimeDB.Client (Client, Config, builder)
 import SpacetimeDB.Client.Typed (callTyped, subscribeTable)
+import SpacetimeDB.Server.HKD (Column, View (..))
 import SpacetimeDB.Server.Reducer (Reducer, reducer)
 import SpacetimeDB.Server.SpacetimeType (SpacetimeType)
 import SpacetimeDB.Server.Table (Table, table)
 import Test.Hspec
 
-data Widget = Widget {id :: Word64, name :: Text, quantity :: Word32}
-  deriving stock (Show, Generic)
-  deriving anyclass (SpacetimeType)
+data Widget f = Widget
+  { id :: Column f Word64 '[]
+  , name :: Column f Text '[]
+  , quantity :: Column f Word32 '[]
+  }
+  deriving stock (Generic)
+deriving stock instance Show (Widget 'Value)
+deriving anyclass instance SpacetimeType (Widget 'Value)
 
 data AddWidgetArgs = AddWidgetArgs {name :: Text, quantity :: Word32}
   deriving stock (Generic)
@@ -41,7 +50,7 @@ clientConfig =
   subscribeTable
     widgetTable
     "SELECT * FROM widget"
-    (\inserts _deletes -> mapM_ print (inserts :: [Widget]))
+    (\inserts _deletes -> mapM_ print (inserts :: [Widget 'Value]))
     (builder "localhost" 3000 "widget-hs")
 
 -- Typed reducer call: name from the handle, argument type checked.
