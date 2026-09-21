@@ -1,0 +1,63 @@
+cabal-version:      3.0
+name:               chat-tui
+version:            0.1.0.0
+synopsis:           quickstart-chat terminal (Brick) client, in Haskell
+license:            MIT
+build-type:         Simple
+
+common extensions
+  default-language:   GHC2021
+  default-extensions: DataKinds
+                      DuplicateRecordFields
+                      LambdaCase
+                      OverloadedRecordDot
+                      OverloadedStrings
+                      TypeApplications
+                      NoFieldSelectors
+
+library
+  import:           extensions
+  hs-source-dirs:   src
+  -- Chat.Tui.Ui is added in Task A3.
+  exposed-modules:  Chat.Tui.Model
+  build-depends:    base
+                  , text
+                  , containers
+                  , brick
+                  , vty
+                  , hs-spacetime
+                  , hs-spacetime:bsatn
+                  , hs-spacetime:spacetime-server
+                  , chat-module
+  ghc-options:      -Wall
+
+executable chat-tui
+  import:           extensions
+  hs-source-dirs:   app
+  main-is:          Main.hs
+  build-depends:    base
+                  , text
+                  , stm
+                  , brick
+                  , vty
+                  , vty-crossplatform
+                  , hs-spacetime
+                  , chat-module
+                  , chat-tui
+  ghc-options:      -Wall -threaded
+
+test-suite chat-tui-test
+  import:           extensions
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   test
+  main-is:          Spec.hs
+  other-modules:    Chat.Tui.ModelSpec
+  build-depends:    base
+                  , text
+                  , containers
+                  , hs-spacetime:bsatn
+                  , hs-spacetime:spacetime-server
+                  , chat-module
+                  , chat-tui
+                  , hspec
+  ghc-options:      -Wall

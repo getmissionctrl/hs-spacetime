@@ -21,9 +21,13 @@
         hs-spacetime = pkgs.haskellPackages.callCabal2nix "hs-spacetime" ./. {};
         # Hermetic shell: GHC with every dep of the package plus cabal, a
         # formatter, and the C libs the wire layer links (brotli, zlib).
+        # Extra Haskell libs the example clients need but the core package does
+        # not depend on (so callCabal2nix does not pull them into GHC's db).
+        extraHsPkgs = p: [ p.brick p.vty p.vty-crossplatform ];
         dev = hs-spacetime.env.overrideAttrs (old: {
           nativeBuildInputs = (old.nativeBuildInputs or [])
-            ++ [ pkgs.cabal-install pkgs.fourmolu pkgs.brotli pkgs.zlib pkgs.pkg-config ];
+            ++ [ pkgs.cabal-install pkgs.fourmolu pkgs.brotli pkgs.zlib pkgs.pkg-config ]
+            ++ extraHsPkgs pkgs.haskellPackages;
         });
         # Live shell: everything in dev, plus the spacetime CLI + a Rust wasm
         # toolchain for building the fixture module. Kept out of `dev` so CI
