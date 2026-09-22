@@ -12,6 +12,7 @@ cp "$wasm" "$dist/chat-web.wasm"
 libdir="$(wasm32-wasi-ghc --print-libdir)"
 postlink="$libdir/post-link.mjs"
 [ -f "$postlink" ] || postlink="$(find "$(dirname "$(command -v wasm32-wasi-ghc)")/.." -name post-link.mjs 2>/dev/null | head -n1)"
+[ -n "$postlink" ] || { echo "ERROR: post-link.mjs not found; check the wasm32-wasi-ghc install" >&2; exit 1; }
 node "$postlink" -i "$dist/chat-web.wasm" -o "$dist/ghc_wasm_jsffi.js"
 
 cp "$here/web/index.html" "$dist/index.html"

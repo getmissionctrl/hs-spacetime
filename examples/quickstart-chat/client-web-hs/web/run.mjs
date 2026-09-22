@@ -40,10 +40,12 @@ async function main() {
 
   document.getElementById("nameForm").addEventListener("submit", async (ev) => {
     ev.preventDefault();
+    if (ws.readyState !== WebSocket.OPEN) { showErr("not connected yet"); return; }
     ws.send(await inst.exports.hs_set_name(document.getElementById("name").value));
   });
   document.getElementById("msgForm").addEventListener("submit", async (ev) => {
     ev.preventDefault();
+    if (ws.readyState !== WebSocket.OPEN) { showErr("not connected yet"); return; }
     const el = document.getElementById("msg");
     ws.send(await inst.exports.hs_send_message(el.value));
     el.value = "";

@@ -143,3 +143,16 @@ typed handles. See [`client-tui/README.md`](client-tui/README.md). Quick start
 
     STDB_HOST=127.0.0.1 STDB_PORT=3000 STDB_DB=quickstart-chat \
       cabal run chat-tui:exe:chat-tui
+
+## Haskell browser client (wasm)
+
+A browser chat client using the **Hybrid** design: JavaScript owns the WebSocket
+while Haskell/wasm owns the SpacetimeDB protocol, BSATN decoding, state, and view
+rendering via four synchronous exports (`hs_subscribe`, `hs_on_frame`,
+`hs_send_message`, `hs_set_name`). See [`client-web-hs/README.md`](client-web-hs/README.md)
+for details.
+
+Quick start (with a published module + running server):
+
+    bash client-web-hs/scripts/build-web-hs.sh
+    python3 -m http.server 8080 --bind 0.0.0.0 --directory client-web-hs/dist
