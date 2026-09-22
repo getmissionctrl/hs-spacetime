@@ -29,8 +29,10 @@ spec = do
     it "falls back to an id prefix when unknown" $
       displayName emptyChat i1 `shouldNotBe` ""
     it "drops names on user removal" $ do
-      let s = removeUsers [User i1 (Just "alice") False]
-                (upsertUsers [User i1 (Just "alice") True] emptyChat)
+      let s =
+            removeUsers
+              [User i1 (Just "alice") False]
+              (upsertUsers [User i1 (Just "alice") True] emptyChat)
       displayName s i1 `shouldNotBe` "alice"
 
   describe "renderMessage" $

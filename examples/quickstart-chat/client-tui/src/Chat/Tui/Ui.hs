@@ -8,11 +8,11 @@ module Chat.Tui.Ui
 
 import Control.Monad.IO.Class (liftIO)
 import Data.Text (Text)
-import qualified Data.Text as T
+import Data.Text qualified as T
 
 import Brick
 import Brick.Widgets.Border (borderWithLabel, hBorder)
-import qualified Graphics.Vty as V
+import Graphics.Vty qualified as V
 
 import Chat (Message, User)
 import Chat.Tui.Model

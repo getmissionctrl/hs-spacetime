@@ -10,12 +10,12 @@ module Chat.Web.Core
   ) where
 
 import Data.ByteString (ByteString)
-import qualified Data.ByteString as BS
+import Data.ByteString qualified as BS
 import Data.List (sortOn)
 import Data.Map.Strict (Map)
-import qualified Data.Map.Strict as M
+import Data.Map.Strict qualified as M
 import Data.Text (Text)
-import qualified Data.Text as T
+import Data.Text qualified as T
 import Data.Word (Word32)
 
 import Chat (Message (..), User (..))
@@ -23,8 +23,8 @@ import SpacetimeDB.BSATN.Decoder (runExact)
 import SpacetimeDB.BSATN.Encoder (runEncoder)
 import SpacetimeDB.BSATN.Types (Identity, Timestamp (..), identityFromInteger, identityToHex)
 import SpacetimeDB.Protocol.Messages
-  ( QuerySetUpdate (..)
-  , QueryRows (..)
+  ( QueryRows (..)
+  , QuerySetUpdate (..)
   , ReducerOutcome (..)
   , ServerMessage (..)
   , SingleTableRows (..)
@@ -104,7 +104,7 @@ subscribeBytes :: Word32 -> [Text] -> ByteString
 subscribeBytes n queries = runEncoder (\() -> encodeSubscribe n n queries) ()
 
 -- | Outbound CallReducer bytes. Raw, no tag.
-callReducerBytes :: SpacetimeType a => Word32 -> Text -> a -> ByteString
+callReducerBytes :: (SpacetimeType a) => Word32 -> Text -> a -> ByteString
 callReducerBytes rid name argv =
   runEncoder (\() -> encodeCallReducer rid 0 name (runEncoder encodeVal argv)) ()
 

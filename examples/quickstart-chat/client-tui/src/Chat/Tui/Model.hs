@@ -12,9 +12,9 @@ module Chat.Tui.Model
 
 import Data.List (sortOn)
 import Data.Map.Strict (Map)
-import qualified Data.Map.Strict as M
+import Data.Map.Strict qualified as M
 import Data.Text (Text)
-import qualified Data.Text as T
+import Data.Text qualified as T
 
 import Chat (Message (..), User (..))
 import SpacetimeDB.BSATN.Types (Identity, identityToHex)

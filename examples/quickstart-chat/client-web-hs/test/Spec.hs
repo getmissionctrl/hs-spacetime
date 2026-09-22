@@ -1,6 +1,6 @@
 module Main (main) where
 
-import qualified Chat.Web.CoreSpec
+import Chat.Web.CoreSpec qualified
 import Test.Hspec (hspec)
 
 main :: IO ()

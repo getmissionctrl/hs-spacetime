@@ -1,13 +1,13 @@
 module Chat.Web.CoreSpec (spec) where
 
-import qualified Data.ByteString as BS
-import qualified Data.Text as T
+import Data.ByteString qualified as BS
+import Data.Text qualified as T
 import Test.Hspec
 
 import Chat (App (..), app)
 import Chat.Web.Core
-import SpacetimeDB.Protocol.Messages (encodeSubscribe)
 import SpacetimeDB.BSATN.Encoder (runEncoder)
+import SpacetimeDB.Protocol.Messages (encodeSubscribe)
 import SpacetimeDB.Server.Table (tableName)
 
 spec :: Spec

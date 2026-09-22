@@ -3,7 +3,7 @@ module Main (main) where
 import Control.Exception (finally)
 import Control.Monad (void)
 import Data.Function ((&))
-import qualified Data.Text as T
+import Data.Text qualified as T
 import System.Environment (lookupEnv)
 
 import Brick (customMain)

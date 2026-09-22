@@ -1,6 +1,6 @@
 module Main (main) where
 
-import qualified Chat.Tui.ModelSpec
+import Chat.Tui.ModelSpec qualified
 import Test.Hspec (hspec)
 
 main :: IO ()

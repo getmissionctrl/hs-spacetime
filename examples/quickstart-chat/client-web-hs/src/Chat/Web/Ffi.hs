@@ -7,9 +7,9 @@ module Chat.Web.Ffi
   , hs_set_name
   ) where
 
-import qualified Data.ByteString as BS
+import Data.ByteString qualified as BS
 import Data.IORef
-import qualified Data.Text as T
+import Data.Text qualified as T
 import Data.Word (Word32)
 import System.IO.Unsafe (unsafePerformIO)
 
@@ -55,16 +55,19 @@ toJSBytes bs = do
   pure arr
 
 -- Note: one multi-query Subscribe frame (qsid 1) over both tables, not two frames.
--- | JS calls this once on socket open; returns the Subscribe frame bytes
--- (one multi-query subscription over the user + message tables) to ws.send.
+
+{- | JS calls this once on socket open; returns the Subscribe frame bytes
+(one multi-query subscription over the user + message tables) to ws.send.
+-}
 hs_subscribe :: IO JSVal
 hs_subscribe = toJSBytes (subscribeBytes 1 [userSql, msgSql])
  where
   userSql = "SELECT * FROM " <> tableName app.user
   msgSql = "SELECT * FROM " <> tableName app.message
 
--- | JS calls this with each received binary frame (a Uint8Array); decodes it,
--- updates the model, and returns the rendered HTML view.
+{- | JS calls this with each received binary frame (a Uint8Array); decodes it,
+updates the model, and returns the rendered HTML view.
+-}
 hs_on_frame :: JSVal -> IO JSString
 hs_on_frame arr = do
   bs <- fromJSBytes arr
