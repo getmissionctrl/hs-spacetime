@@ -99,9 +99,9 @@ renderHtml m = T.intercalate "\n" [line msg | msg <- m.wmMessages]
 esc :: Text -> Text
 esc = T.replace "<" "&lt;" . T.replace ">" "&gt;" . T.replace "&" "&amp;"
 
--- | Outbound Subscribe bytes for a single query at (rid=qsid=n). Raw, no tag.
-subscribeBytes :: Word32 -> Text -> ByteString
-subscribeBytes n query = runEncoder (\() -> encodeSubscribe n n [query]) ()
+-- | Outbound Subscribe bytes for one or more queries at (rid=qsid=n). Raw, no tag.
+subscribeBytes :: Word32 -> [Text] -> ByteString
+subscribeBytes n queries = runEncoder (\() -> encodeSubscribe n n queries) ()
 
 -- | Outbound CallReducer bytes. Raw, no tag.
 callReducerBytes :: SpacetimeType a => Word32 -> Text -> a -> ByteString

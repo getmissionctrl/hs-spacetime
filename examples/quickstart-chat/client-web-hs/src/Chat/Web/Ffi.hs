@@ -17,8 +17,6 @@ import GHC.Wasm.Prim
 
 import Chat (App (..), SendMessageArgs (..), SetNameArgs (..), app)
 import Chat.Web.Core
-import SpacetimeDB.BSATN.Encoder (runEncoder)
-import SpacetimeDB.Protocol.Messages (encodeSubscribe)
 import SpacetimeDB.Server.Reducer (reducerName)
 import SpacetimeDB.Server.Table (tableName)
 
@@ -60,7 +58,7 @@ toJSBytes bs = do
 -- | JS calls this once on socket open; returns the Subscribe frame bytes
 -- (one multi-query subscription over the user + message tables) to ws.send.
 hs_subscribe :: IO JSVal
-hs_subscribe = toJSBytes (runEncoder (\() -> encodeSubscribe 1 1 [userSql, msgSql]) ())
+hs_subscribe = toJSBytes (subscribeBytes 1 [userSql, msgSql])
  where
   userSql = "SELECT * FROM " <> tableName app.user
   msgSql = "SELECT * FROM " <> tableName app.message

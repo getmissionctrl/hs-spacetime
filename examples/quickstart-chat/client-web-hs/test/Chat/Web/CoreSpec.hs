@@ -18,14 +18,21 @@ spec = do
     it "rejects an empty frame" $
       decodeFrameNone BS.empty `shouldSatisfy` isLeft
 
-  describe "subscribeBytes" $
-    it "matches the native encodeSubscribe wire bytes" $ do
+  describe "subscribeBytes" $ do
+    it "matches native encodeSubscribe for a single query" $ do
       let userSql = "SELECT * FROM " <> tableName app.user
           native = runEncoder (\() -> encodeSubscribe 1 1 [userSql]) ()
-      subscribeBytes 1 userSql `shouldBe` native
+      subscribeBytes 1 [userSql] `shouldBe` native
+    it "matches native encodeSubscribe for the two-query frame the client sends" $ do
+      let userSql = "SELECT * FROM " <> tableName app.user
+          msgSql = "SELECT * FROM " <> tableName app.message
+          native = runEncoder (\() -> encodeSubscribe 1 1 [userSql, msgSql]) ()
+      subscribeBytes 1 [userSql, msgSql] `shouldBe` native
 
-  describe "renderHtml" $
+  describe "renderHtml" $ do
     it "escapes angle brackets in message text" $
       T.isInfixOf "&lt;script&gt;" (renderHtml (modelWithMessage "<script>")) `shouldBe` True
+    it "escapes ampersands (before angle brackets, no double-encoding)" $
+      T.isInfixOf "a&amp;b" (renderHtml (modelWithMessage "a&b")) `shouldBe` True
  where
   isLeft = either (const True) (const False)
