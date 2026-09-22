@@ -32,6 +32,9 @@ library
                   , hs-spacetime:bsatn
                   , hs-spacetime:spacetime-server
                   , chat-module
+  if flag(wasm)
+    exposed-modules: Chat.Web.Ffi
+    build-depends:   ghc-experimental
   ghc-options:      -Wall
 
 test-suite chat-web-test
@@ -51,3 +54,23 @@ test-suite chat-web-test
                   , chat-web
                   , hspec
   ghc-options:      -Wall
+
+executable chat-web
+  import:           extensions
+  hs-source-dirs:   app
+  main-is:          ChatWeb.hs
+  if !flag(wasm)
+    buildable: False
+  if flag(wasm)
+    build-depends:  base
+                  , text
+                  , bytestring
+                  , ghc-experimental
+                  , chat-web
+    ghc-options:    -no-hs-main -optl-mexec-model=reactor
+                    -optl-Wl,--export=hs_subscribe
+                    -optl-Wl,--export=hs_on_frame
+                    -optl-Wl,--export=hs_send_message
+                    -optl-Wl,--export=hs_set_name
+                    -optl-Wl,--export=_initialize
+                    -optl-Wl,--export-memory
