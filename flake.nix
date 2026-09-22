@@ -22,13 +22,20 @@
         # Hermetic shell: GHC with every dep of the package plus cabal, a
         # formatter, and the C libs the wire layer links (brotli, zlib).
         # Extra Haskell libs the example clients need but the core package does
-        # not depend on (so callCabal2nix does not pull them into GHC's db).
+        # not depend on. These must land in GHC's package DB (not merely on
+        # PATH): CI has no Hackage index and resolves deps solely from the
+        # Nix-provided DB, so `nativeBuildInputs` alone is not enough (it leaves
+        # the DB unchanged and `cabal build all` fails to find vty-crossplatform).
+        # `shellFor` with `additional` registers them in the same DB as
+        # hs-spacetime's own deps.
         extraHsPkgs = p: [ p.brick p.vty p.vty-crossplatform ];
-        dev = hs-spacetime.env.overrideAttrs (old: {
-          nativeBuildInputs = (old.nativeBuildInputs or [])
-            ++ [ pkgs.cabal-install pkgs.fourmolu pkgs.brotli pkgs.zlib pkgs.pkg-config ]
-            ++ extraHsPkgs pkgs.haskellPackages;
-        });
+        dev = pkgs.haskellPackages.shellFor {
+          packages = _: [ hs-spacetime ];
+          additional = extraHsPkgs pkgs.haskellPackages;
+          withHoogle = false;
+          nativeBuildInputs =
+            [ pkgs.cabal-install pkgs.fourmolu pkgs.brotli pkgs.zlib pkgs.pkg-config ];
+        };
         # Live shell: everything in dev, plus the spacetime CLI + a Rust wasm
         # toolchain for building the fixture module. Kept out of `dev` so CI
         # carries no compiler.
