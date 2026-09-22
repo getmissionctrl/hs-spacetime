@@ -29,13 +29,16 @@
         # `shellFor` with `additional` registers them in the same DB as
         # hs-spacetime's own deps.
         extraHsPkgs = p: [ p.brick p.vty p.vty-crossplatform ];
-        dev = pkgs.haskellPackages.shellFor {
-          packages = _: [ hs-spacetime ];
-          additional = extraHsPkgs pkgs.haskellPackages;
-          withHoogle = false;
-          nativeBuildInputs =
-            [ pkgs.cabal-install pkgs.fourmolu pkgs.brotli pkgs.zlib pkgs.pkg-config ];
-        };
+        # Add the example clients' libs as build-depends of hs-spacetime, so its
+        # `.env` builds a GHC whose package DB includes them. `.env` registers
+        # every haskellBuildInput in the DB (unlike nativeBuildInputs, which only
+        # affects PATH) — required for CI, which has no Hackage index.
+        hsForDev = pkgs.haskell.lib.addBuildDepends hs-spacetime
+          (extraHsPkgs pkgs.haskellPackages);
+        dev = hsForDev.env.overrideAttrs (old: {
+          nativeBuildInputs = (old.nativeBuildInputs or [])
+            ++ [ pkgs.cabal-install pkgs.fourmolu pkgs.brotli pkgs.zlib pkgs.pkg-config ];
+        });
         # Live shell: everything in dev, plus the spacetime CLI + a Rust wasm
         # toolchain for building the fixture module. Kept out of `dev` so CI
         # carries no compiler.
