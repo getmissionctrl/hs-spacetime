@@ -1,6 +1,7 @@
 packages: .
           examples/quickstart-chat/server
           examples/quickstart-chat/client-tui
+          examples/quickstart-chat/client-web-hs
 
 -- Force the solver to include the test suite in the build plan (needed for a
 -- fresh `cabal test` in the Nix dev shell, which has no Hackage index).

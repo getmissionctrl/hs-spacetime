@@ -1,0 +1,53 @@
+cabal-version:      3.0
+name:               chat-web
+version:            0.1.0.0
+synopsis:           quickstart-chat browser client (Haskell → wasm)
+license:            MIT
+build-type:         Simple
+
+flag wasm
+  description: Build the wasm reactor for the browser client.
+  default:     False
+  manual:      True
+
+common extensions
+  default-language:   GHC2021
+  default-extensions: DataKinds
+                      DuplicateRecordFields
+                      LambdaCase
+                      OverloadedRecordDot
+                      OverloadedStrings
+                      TypeApplications
+                      NoFieldSelectors
+
+library
+  import:           extensions
+  hs-source-dirs:   src
+  exposed-modules:  Chat.Web.Core
+  build-depends:    base
+                  , text
+                  , bytestring
+                  , containers
+                  , hs-spacetime:spacetime-client-core
+                  , hs-spacetime:bsatn
+                  , hs-spacetime:spacetime-server
+                  , chat-module
+  ghc-options:      -Wall
+
+test-suite chat-web-test
+  import:           extensions
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   test
+  main-is:          Spec.hs
+  other-modules:    Chat.Web.CoreSpec
+  build-depends:    base
+                  , text
+                  , bytestring
+                  , containers
+                  , hs-spacetime:spacetime-client-core
+                  , hs-spacetime:bsatn
+                  , hs-spacetime:spacetime-server
+                  , chat-module
+                  , chat-web
+                  , hspec
+  ghc-options:      -Wall
