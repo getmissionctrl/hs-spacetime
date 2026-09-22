@@ -10,6 +10,12 @@
 
 ---
 
+## B2 CHECKPOINT OUTCOME (2026-09-22): HYBRID chosen
+
+The B2 spike proved: Haskell→wasm builds/boots in-browser, the RTS initializes, and **synchronous JS→Haskell calls via `foreign export javascript` work** (an exported action runs to completion and its WASI-stdout output appears). It also proved the **Pure path is blocked**: a Haskell closure installed as a JS callback via `foreign import javascript "wrapper"` (WebSocket `onopen`/`onmessage`, or even a `setTimeout` handler) **does not fire** in the reactor, even with a live keep-alive thread — a deep GHC-wasm scheduler limitation we could not resolve without browser-console/WASI tooling.
+
+**Decision:** build the browser client in the **Hybrid** shape. **JS owns the WebSocket and its event handlers**; on each event it makes a *synchronous* call into exported Haskell functions (the proven primitive). Haskell/wasm still owns 100% of the SpacetimeDB protocol, BSATN decode, state, and view (`Chat.Web.Core`, unchanged). This changes **B4** (export byte-processing functions instead of Haskell-owned socket + wrapper callbacks) and **B5** (JS `run.mjs` holds the socket and calls the exports). **B3 is unchanged.** Also note the loader fix the spike found: `wasi.initialize(inst)` already calls `_initialize` — do NOT call `_initialize()` again (double-init traps), and cache-bust the `.wasm`/glue fetches.
+
 ## Verified Facts (used throughout — do not re-derive)
 
 - **Typed handles** (`examples/quickstart-chat/server/src/Chat.hs`, module `Chat` exports `User(..) Message(..) SetNameArgs(..) SendMessageArgs(..) App(..) app chatModule`):
