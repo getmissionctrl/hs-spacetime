@@ -56,6 +56,7 @@ toJSBytes bs = do
   mapM_ (\(i, w) -> js_setByte arr i (fromIntegral w)) (zip [0 ..] (BS.unpack bs))
   pure arr
 
+-- Note: one multi-query Subscribe frame (qsid 1) over both tables, not two frames.
 -- | JS calls this once on socket open; returns the Subscribe frame bytes
 -- (one multi-query subscription over the user + message tables) to ws.send.
 hs_subscribe :: IO JSVal

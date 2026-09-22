@@ -1,0 +1,24 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>quickstart-chat — Haskell in the browser</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 40rem; margin: 2rem auto; padding: 0 1rem; }
+  #log { border: 1px solid #ccc; padding: .5rem; min-height: 12rem; }
+  .msg { padding: .1rem 0; }
+  form { display: flex; gap: .5rem; margin-top: .5rem; }
+  input { flex: 1; }
+  #err { color: #b00; white-space: pre-wrap; }
+</style>
+</head>
+<body>
+<h1>quickstart-chat <small>(Haskell → wasm)</small></h1>
+<div id="log"></div>
+<form id="nameForm"><input id="name" placeholder="set your name" /><button>set name</button></form>
+<form id="msgForm"><input id="msg" placeholder="message" /><button>send</button></form>
+<pre id="err"></pre>
+<script type="module" src="./run.mjs"></script>
+</body>
+</html>
